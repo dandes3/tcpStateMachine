@@ -26,6 +26,7 @@ class StudentSocketImpl extends BaseSocketImpl {
    *               connection.
    */
   public synchronized void connect(InetAddress address, int port) throws IOException{
+    // TODO
     localport = D.getNextAvailablePort();
   }
   
@@ -34,6 +35,7 @@ class StudentSocketImpl extends BaseSocketImpl {
    * @param p The packet that arrived
    */
   public synchronized void receivePacket(TCPPacket p){
+    // TODO
   }
   
   /** 
@@ -44,6 +46,7 @@ class StudentSocketImpl extends BaseSocketImpl {
    * Note that localport is already set prior to this being called.
    */
   public synchronized void acceptConnection() throws IOException {
+    // TODO
   }
 
   
@@ -85,6 +88,7 @@ class StudentSocketImpl extends BaseSocketImpl {
    * @exception  IOException  if an I/O error occurs when closing this socket.
    */
   public synchronized void close() throws IOException {
+    // TODO
   }
 
   /** 
@@ -105,6 +109,7 @@ class StudentSocketImpl extends BaseSocketImpl {
    * information.
    */
   public synchronized void handleTimer(Object ref){
+    // TODO
 
     // this must run only once the last timer (30 second timer) has expired
     tcpTimer.cancel();
