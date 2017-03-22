@@ -7,9 +7,9 @@ JC = javac
 CLASSES = \
         StudentSocketImpl-skel.java \
         client2.java \
-	    client0.java\
-        server2.java\
-	    server0.java 
+        client0.java\
+        server2.java \
+        server0.java 
 
 default: classes
 
