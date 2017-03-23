@@ -12,10 +12,11 @@ class StudentSocketImpl extends BaseSocketImpl {
   private Demultiplexer D;
   private Timer tcpTimer;
   private State state;
+  private int seqNumber;
   private InetAddress foreignAddress;
 
   // In order
-  // Also fuck Java's enum shit
+  // Also fuck Java's static enum shit
   enum State { 
     CLOSED{@Override public String toString(){return "CLOSED";}}, 
     LISTEN{@Override public String toString(){return "LISTEN";}}, 
@@ -44,18 +45,23 @@ class StudentSocketImpl extends BaseSocketImpl {
    *               connection.
    */
   public synchronized void connect(InetAddress address, int port) throws IOException{
+
+    seqNumber = 5;
+
     localport = D.getNextAvailablePort();
 
     D.registerConnection(address, this.localport, port, this);
 
-    TCPPacket initSYN = new TCPPacket(this.localport, port, 5, 8, false, true, false, 5, null);
+    TCPPacket initSYN = new TCPPacket(this.localport, port, seqNumber, 8, false, true, false, 5, null);
 
     TCPWrapper.send(initSYN, address);
 
     visStateMovement(State.CLOSED, State.SYN_SENT);
+    state = State.SYN_SENT;
 
-    while state != State.ESTABLISHED{
-      wait();
+    while (state != State.ESTABLISHED){
+      try{wait();}
+      catch(InterruptedException e){e.printStackTrace();}
     }
   }
   
@@ -64,9 +70,44 @@ class StudentSocketImpl extends BaseSocketImpl {
    * @param p The packet that arrived
    */
   public synchronized void receivePacket(TCPPacket p){
-    // TODO
+    TCPPacket talkback;
+
+    System.out.println(p);
+
+    /***
+    switch (state){
+      case LISTEN:
+        break;
+
+      case SYN_SENT:
+        break;
+
+      case SYN_RCVD:
+        break;
+
+      case ESTABLISHED:
+        break;
+
+      case FIN_WAIT_1:
+        break;
+
+      case FIN_WAIT_2:
+        break;
+
+      case LAST_ACK:
+        break;
+
+      case CLOSING:
+        break;
+
+      default:
+        break;
+    }
+
+    this.notifyAll();
+  **/
   }
-  
+
   /** 
    * Waits for an incoming connection to arrive to connect this socket to
    * Ultimately this is called by the application calling 
@@ -146,6 +187,6 @@ class StudentSocketImpl extends BaseSocketImpl {
   }
 
   private void visStateMovement(State enter, State exit){
-    System.out.println("> " + enter + " -> " + exit);
+    System.out.println(">>> " + enter + " -> " + exit);
   }
 }
