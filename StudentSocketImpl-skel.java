@@ -11,10 +11,84 @@ class StudentSocketImpl extends BaseSocketImpl {
 
   private Demultiplexer D;
   private Timer tcpTimer;
+  private State state;
+  private InetAddress foreignAddress;
+
+  // In order
+  // Also fuck Java's enum shit
+  enum State { 
+    CLOSED{
+      @Override
+      public String toString(){
+        return "CLOSED";
+      }
+    }, 
+    LISTEN{
+      @Override
+      public String toString(){
+        return "LISTEN";
+      }
+    }, 
+    SYN_SENT{
+      @Override
+      public String toString(){
+        return "SYN_SENT";
+      }
+    }, 
+    SYN_RCVD{
+      @Override
+      public String toString(){
+        return "SYN_RCVD";
+      }
+    }, 
+    ESTABLISHED{
+      @Override
+      public String toString(){
+        return "ESTABLISHED";
+      }
+    }, 
+    FIN_WAIT_1{
+      @Override
+      public String toString(){
+        return "FIN_WAIT_1";
+      }
+    }, 
+    CLOSE_WAIT{
+      @Override
+      public String toString(){
+        return "CLOSE_WAIT";
+      }
+    }, 
+    FIN_WAIT_2{
+      @Override
+      public String toString(){
+        return "FIN_WAIT_2";
+      }
+    }, 
+    LAST_ACK{
+      @Override
+      public String toString(){
+        return "LAST_ACK";
+      }
+    }, 
+    TIME_WAIT{
+      @Override
+      public String toString(){
+        return "TIME_WAIT";
+      }
+    }, 
+    CLOSING{
+      @Override
+      public String toString(){
+        return "CLOSING";
+      }
+    }
+  }
 
 
   StudentSocketImpl(Demultiplexer D) {  // default constructor
     this.D = D;
+    state = state.CLOSED;
   }
 
   /**
@@ -26,8 +100,15 @@ class StudentSocketImpl extends BaseSocketImpl {
    *               connection.
    */
   public synchronized void connect(InetAddress address, int port) throws IOException{
-    // TODO
     localport = D.getNextAvailablePort();
+
+    D.registerConnection(address, this.localport, port, this)
+
+    TCPPacket initSYN = new TCPPacket(this.localport, port, 5, 8, false, true, false, 5, null);
+
+    TCPWrapper.send(initSYN, address);
+
+    visStateMovement(State.CLOSED, State.SYN_SENT);
   }
   
   /**
@@ -114,5 +195,9 @@ class StudentSocketImpl extends BaseSocketImpl {
     // this must run only once the last timer (30 second timer) has expired
     tcpTimer.cancel();
     tcpTimer = null;
+  }
+
+  private void visStateMovement(State enter, State exit){
+    System.out.println("!!! " + enter + "->" exit);
   }
 }
