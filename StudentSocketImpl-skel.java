@@ -53,6 +53,10 @@ class StudentSocketImpl extends BaseSocketImpl {
     TCPWrapper.send(initSYN, address);
 
     visStateMovement(State.CLOSED, State.SYN_SENT);
+
+    while state != State.ESTABLISHED{
+      wait();
+    }
   }
   
   /**
