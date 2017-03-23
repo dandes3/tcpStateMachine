@@ -59,10 +59,15 @@ class StudentSocketImpl extends BaseSocketImpl {
     visStateMovement(State.CLOSED, State.SYN_SENT);
     state = State.SYN_SENT;
 
+    /*
     while (state != State.ESTABLISHED){
-      try{wait();}
-      catch(InterruptedException e){e.printStackTrace();}
+      try{
+       wait();
+      } catch(InterruptedException e){
+         e.printStackTrace();
+        }
     }
+   */
   }
   
   /**
@@ -70,11 +75,11 @@ class StudentSocketImpl extends BaseSocketImpl {
    * @param p The packet that arrived
    */
   public synchronized void receivePacket(TCPPacket p){
-    TCPPacket talkback;
+   // TCPPacket talkback;
 
-    System.out.println(p);
+    System.out.println("Made it in to receive");
 
-    /***
+    /*
     switch (state){
       case LISTEN:
         break;
@@ -103,9 +108,9 @@ class StudentSocketImpl extends BaseSocketImpl {
       default:
         break;
     }
-
+    */
     this.notifyAll();
-  **/
+  
   }
 
   /** 
@@ -116,7 +121,10 @@ class StudentSocketImpl extends BaseSocketImpl {
    * Note that localport is already set prior to this being called.
    */
   public synchronized void acceptConnection() throws IOException {
-    // TODO
+    System.out.println("Got in to AcceptConnection");
+    D.registerListeningSocket(this.localport, this);
+    visStateMovement(State.CLOSED, State.LISTEN);
+    state = State.LISTEN; 
   }
 
   

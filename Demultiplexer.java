@@ -164,7 +164,7 @@ class Demultiplexer extends Thread {
   	        c.receivePacket(packet);
             }
 	    else
-	      System.err.println("!!! UNMATCHED PACKET");
+	      System.err.println("! UNMATCHED PACKET");
         }
 	else
 	  System.err.println("!!! UNMATCHED PACKET");
