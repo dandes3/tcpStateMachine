@@ -102,7 +102,7 @@ class StudentSocketImpl extends BaseSocketImpl {
   public synchronized void connect(InetAddress address, int port) throws IOException{
     localport = D.getNextAvailablePort();
 
-    D.registerConnection(address, this.localport, port, this)
+    D.registerConnection(address, this.localport, port, this);
 
     TCPPacket initSYN = new TCPPacket(this.localport, port, 5, 8, false, true, false, 5, null);
 
@@ -198,6 +198,6 @@ class StudentSocketImpl extends BaseSocketImpl {
   }
 
   private void visStateMovement(State enter, State exit){
-    System.out.println("!!! " + enter + "->" exit);
+    System.out.println("!!! " + enter + "->" + exit);
   }
 }
