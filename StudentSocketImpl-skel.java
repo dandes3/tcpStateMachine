@@ -17,74 +17,18 @@ class StudentSocketImpl extends BaseSocketImpl {
   // In order
   // Also fuck Java's enum shit
   enum State { 
-    CLOSED{
-      @Override
-      public String toString(){
-        return "CLOSED";
-      }
-    }, 
-    LISTEN{
-      @Override
-      public String toString(){
-        return "LISTEN";
-      }
-    }, 
-    SYN_SENT{
-      @Override
-      public String toString(){
-        return "SYN_SENT";
-      }
-    }, 
-    SYN_RCVD{
-      @Override
-      public String toString(){
-        return "SYN_RCVD";
-      }
-    }, 
-    ESTABLISHED{
-      @Override
-      public String toString(){
-        return "ESTABLISHED";
-      }
-    }, 
-    FIN_WAIT_1{
-      @Override
-      public String toString(){
-        return "FIN_WAIT_1";
-      }
-    }, 
-    CLOSE_WAIT{
-      @Override
-      public String toString(){
-        return "CLOSE_WAIT";
-      }
-    }, 
-    FIN_WAIT_2{
-      @Override
-      public String toString(){
-        return "FIN_WAIT_2";
-      }
-    }, 
-    LAST_ACK{
-      @Override
-      public String toString(){
-        return "LAST_ACK";
-      }
-    }, 
-    TIME_WAIT{
-      @Override
-      public String toString(){
-        return "TIME_WAIT";
-      }
-    }, 
-    CLOSING{
-      @Override
-      public String toString(){
-        return "CLOSING";
-      }
-    }
+    CLOSED{@Override public String toString(){return "CLOSED";}}, 
+    LISTEN{@Override public String toString(){return "LISTEN";}}, 
+    SYN_SENT{@Override public String toString(){return "SYN_SENT";}}, 
+    SYN_RCVD{@Override public String toString(){return "SYN_RCVD";}}, 
+    ESTABLISHED{@Override public String toString(){return "ESTABLISHED";}}, 
+    FIN_WAIT_1{@Override public String toString(){return "FIN_WAIT_1";}}, 
+    CLOSE_WAIT{@Override public String toString(){return "CLOSE_WAIT";}}, 
+    FIN_WAIT_2{@Override public String toString(){return "FIN_WAIT_2";}}, 
+    LAST_ACK{@Override public String toString(){return "LAST_ACK";}}, 
+    TIME_WAIT{@Override public String toString(){return "TIME_WAIT";}}, 
+    CLOSING{@Override public String toString(){return "CLOSING";}}
   }
-
 
   StudentSocketImpl(Demultiplexer D) {  // default constructor
     this.D = D;
@@ -198,6 +142,6 @@ class StudentSocketImpl extends BaseSocketImpl {
   }
 
   private void visStateMovement(State enter, State exit){
-    System.out.println("!!! " + enter + "->" + exit);
+    System.out.println("> " + enter + " -> " + exit);
   }
 }
