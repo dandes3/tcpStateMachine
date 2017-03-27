@@ -63,10 +63,10 @@ class StudentSocketImpl extends BaseSocketImpl {
     TCPWrapper.send(initSYN, address);
 
     // State printout
-    System.out.println(">>> " + State.CLOSED + " -> " + State.SYN_SENT);
-    curState = State.SYN_SENT;
+    stateMovement(State.CLOSED, State.SYN_SENT);
 
-    
+    // Step 3 
+    /* 
     while (curState != State.ESTABLISHED){
       try{
        wait();
@@ -75,6 +75,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          e.printStackTrace();
       }
     }
+    */
   }
   
   /**
@@ -98,9 +99,10 @@ class StudentSocketImpl extends BaseSocketImpl {
          talkback = new TCPPacket(localport, p.sourcePort, localAckNum, localSeqNumberStep, true, true, false, winSize, payload); 
          TCPWrapper.send(talkback, localSourcAddr);
 
-         System.out.println(">>> " + curState + " -> " + State.SYN_RCVD);
-         curState = State.SYN_RCVD;
+         stateMovement(curState, State.SYN_RCVD);
 
+         // Keeps bugging for this try/catch
+         // bleh
          try{
           D.unregisterListeningSocket(localport, this);
           D.registerConnection(localSourcAddr, localport, p.sourcePort, this);
@@ -114,25 +116,40 @@ class StudentSocketImpl extends BaseSocketImpl {
       case SYN_SENT:
          System.out.println("Made it in to SYN_SENT");
 
-         localSourcePort = p.sourcePort;
          localSeqNumber = p.seqNum;
          localSeqNumberStep = localSeqNumber + 1;
          localSourcAddr = p.sourceAddr;
+         localSourcePort = p.sourcePort;
 
          talkback = new TCPPacket(localport, localSourcePort, -2, localSeqNumberStep, true, false, false, winSize, payload);
          TCPWrapper.send(talkback, localSourcAddr);
 
-         System.out.println(">>> " + curState + " -> " + State.ESTABLISHED);
-         curState = State.ESTABLISHED;
+         stateMovement(curState, State.ESTABLISHED);
 
          break;
 
       case SYN_RCVD:
          System.out.println("Made it in to SYN_RCVD");
+
+         localSourcePort = p.sourcePort;
+
+         stateMovement(curState, State.ESTABLISHED);
+
          break;
 
       case ESTABLISHED:
          System.out.println("Made it in to ESTABLISHED");
+
+         localSeqNumber = p.seqNum;
+         localSeqNumberStep = localSeqNumber + 1;
+         localSourcAddr = p.sourceAddr;
+         localSourcePort = p.sourcePort;
+
+         talkback = new TCPPacket(localport, localSourcePort, -2, localSeqNumberStep, true, false, false, winSize, payload);
+         TCPWrapper.send(talkback, localSourcAddr);
+
+         stateMovement(curState, State.CLOSE_WAIT);
+
          break;
 
       case FIN_WAIT_1:
@@ -238,4 +255,9 @@ class StudentSocketImpl extends BaseSocketImpl {
     // this must run only once the last timer (30 second timer) has expired
     tcpTimer.cancel();
     tcpTimer = null;
+  }
+
+  private void stateMovement(State in, State out) {
+    System.out.println("!!! " + in + "->" + out);
+    curState = out;
   }
