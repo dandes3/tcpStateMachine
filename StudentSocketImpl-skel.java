@@ -9,14 +9,20 @@ class StudentSocketImpl extends BaseSocketImpl {
   //   protected int port;
   //   protected int localport;
 
-  private Demultiplexer D;
-  private Timer tcpTimer;
-  private State state;
-  private int seqNumber;
-  private InetAddress foreignAddress;
+  private Demultiplexer D; // Given
+  private Timer tcpTimer;  // Given
+
+  private static final int winSize = 5;
+  private static final String payload = null; // Un-statify if using payloads
+  private State curState;
+  private int localAckNum;
+  private InetAddress localSourcAddr;
+  private int localSeqNumber;
+  private int localSeqNumberStep;
+  private int localSourcePort;
 
   // In order
-  // Also fuck Java's static enum shit
+  // Also fuck Java's static enum shit, not proud of this fix
   enum State { 
     CLOSED{@Override public String toString(){return "CLOSED";}}, 
     LISTEN{@Override public String toString(){return "LISTEN";}}, 
@@ -33,7 +39,7 @@ class StudentSocketImpl extends BaseSocketImpl {
 
   StudentSocketImpl(Demultiplexer D) {  // default constructor
     this.D = D;
-    state = state.CLOSED;
+    curState = State.CLOSED;
   }
 
   /**
@@ -45,29 +51,30 @@ class StudentSocketImpl extends BaseSocketImpl {
    *               connection.
    */
   public synchronized void connect(InetAddress address, int port) throws IOException{
+    TCPPacket initSYN;
 
-    seqNumber = 5;
-
+    localAckNum = 5;
+    localSeqNumberStep = 8; // Uniformity
     localport = D.getNextAvailablePort();
 
+    // Make connection, wrap the packet and shoot it out
     D.registerConnection(address, this.localport, port, this);
-
-    TCPPacket initSYN = new TCPPacket(this.localport, port, seqNumber, 8, false, true, false, 5, null);
-
+    initSYN = new TCPPacket(this.localport, port, localAckNum, localSeqNumberStep, false, true, false, winSize, payload);
     TCPWrapper.send(initSYN, address);
 
-    visStateMovement(State.CLOSED, State.SYN_SENT);
-    state = State.SYN_SENT;
+    // State printout
+    System.out.println(">>> " + State.CLOSED + " -> " + State.SYN_SENT);
+    curState = State.SYN_SENT;
 
-    /*
-    while (state != State.ESTABLISHED){
+    
+    while (curState != State.ESTABLISHED){
       try{
        wait();
-      } catch(InterruptedException e){
+      } 
+      catch(InterruptedException e){
          e.printStackTrace();
-        }
+      }
     }
-   */
   }
   
   /**
@@ -75,42 +82,81 @@ class StudentSocketImpl extends BaseSocketImpl {
    * @param p The packet that arrived
    */
   public synchronized void receivePacket(TCPPacket p){
-   // TCPPacket talkback;
+    TCPPacket talkback;
 
     System.out.println("Made it in to receive");
 
-    /*
-    switch (state){
+    switch (curState){
       case LISTEN:
-        break;
+         System.out.println("Made it in to LISTEN");
+
+         localSeqNumber = p.seqNum; // Value from a wrapped TCP packet
+         localSeqNumberStep = localSeqNumber + 1;
+         localSourcAddr = p.sourceAddr;
+         localAckNum = p.ackNum;
+
+         talkback = new TCPPacket(localport, p.sourcePort, localAckNum, localSeqNumberStep, true, true, false, winSize, payload); 
+         TCPWrapper.send(talkback, localSourcAddr);
+
+         System.out.println(">>> " + curState + " -> " + State.SYN_RCVD);
+         curState = State.SYN_RCVD;
+
+         try{
+          D.unregisterListeningSocket(localport, this);
+          D.registerConnection(localSourcAddr, localport, p.sourcePort, this);
+         } 
+         catch(InterruptedException e){
+          e.printStackTrace();
+         }
+
+         break;
 
       case SYN_SENT:
-        break;
+         System.out.println("Made it in to SYN_SENT");
+
+         localSourcePort = p.sourcePort;
+         localSeqNumber = p.seqNum;
+         localSeqNumberStep = localSeqNumber + 1;
+         localSourcAddr = p.sourceAddr;
+
+         talkback = new TCPPacket(localport, localSourcePort, -2, localSeqNumberStep, true, false, false, winSize, payload);
+         TCPWrapper.send(talkback, localSourcAddr);
+
+         System.out.println(">>> " + curState + " -> " + State.ESTABLISHED);
+         curState = State.ESTABLISHED;
+
+         break;
 
       case SYN_RCVD:
-        break;
+         System.out.println("Made it in to SYN_RCVD");
+         break;
 
       case ESTABLISHED:
-        break;
+         System.out.println("Made it in to ESTABLISHED");
+         break;
 
       case FIN_WAIT_1:
-        break;
+         System.out.println("Made it in to FIN_WAIT_1");
+         break;
 
       case FIN_WAIT_2:
-        break;
+         System.out.println("Made it in to FIN_WAIT_2");
+         break;
 
       case LAST_ACK:
-        break;
+         System.out.println("Made it in to LAST_ACK");
+         break;
 
       case CLOSING:
-        break;
+         System.out.println("Made it in to CLOSING");
+         break;
 
       default:
-        break;
+         break;
     }
-    */
+
     this.notifyAll();
-  
+
   }
 
   /** 
@@ -121,10 +167,10 @@ class StudentSocketImpl extends BaseSocketImpl {
    * Note that localport is already set prior to this being called.
    */
   public synchronized void acceptConnection() throws IOException {
-    System.out.println("Got in to AcceptConnection");
+    System.out.println("Made it in to AcceptConnection");
     D.registerListeningSocket(this.localport, this);
     visStateMovement(State.CLOSED, State.LISTEN);
-    state = State.LISTEN; 
+    curState = State.LISTEN; 
   }
 
   
@@ -193,8 +239,3 @@ class StudentSocketImpl extends BaseSocketImpl {
     tcpTimer.cancel();
     tcpTimer = null;
   }
-
-  private void visStateMovement(State enter, State exit){
-    System.out.println(">>> " + enter + " -> " + exit);
-  }
-}
