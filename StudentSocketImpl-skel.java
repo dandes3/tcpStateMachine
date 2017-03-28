@@ -242,7 +242,7 @@ class StudentSocketImpl extends BaseSocketImpl {
     stateMovement(State.CLOSED, State.LISTEN);
 
     // Step 3
-    /*
+  
     while (curState != State.ESTABLISHED) {
       try {
         wait();
@@ -251,7 +251,6 @@ class StudentSocketImpl extends BaseSocketImpl {
         e.printStackTrace();
       }
     }
-    */
   }
 
   
