@@ -91,24 +91,27 @@ class StudentSocketImpl extends BaseSocketImpl {
       case LISTEN:
          System.out.println("Made it in to LISTEN");
 
-         localSeqNumber = p.seqNum; // Value from a wrapped TCP packet
-         localSeqNumberStep = localSeqNumber + 1;
-         localSourcAddr = p.sourceAddr;
-         localAckNum = p.ackNum;
+         if (!p.ackFlag || p.synFlag){
 
-         talkback = new TCPPacket(localport, p.sourcePort, localAckNum, localSeqNumberStep, true, true, false, winSize, payload); 
-         TCPWrapper.send(talkback, localSourcAddr);
+           localSeqNumber = p.seqNum; // Value from a wrapped TCP packet
+           localSeqNumberStep = localSeqNumber + 1;
+           localSourcAddr = p.sourceAddr;
+           localAckNum = p.ackNum;
 
-         stateMovement(curState, State.SYN_RCVD);
+           talkback = new TCPPacket(localport, p.sourcePort, localAckNum, localSeqNumberStep, true, true, false, winSize, payload); 
+           TCPWrapper.send(talkback, localSourcAddr);
 
-         // Keeps bugging for this try/catch
-         // bleh
-         try{
-          D.unregisterListeningSocket(localport, this);
-          D.registerConnection(localSourcAddr, localport, p.sourcePort, this);
-         } 
-         catch(InterruptedException e){
-          e.printStackTrace();
+           stateMovement(curState, State.SYN_RCVD);
+
+           // Keeps bugging for this try/catch
+           // bleh
+           try{
+            D.unregisterListeningSocket(localport, this);
+            D.registerConnection(localSourcAddr, localport, p.sourcePort, this);
+           } 
+           catch(InterruptedException e){
+            e.printStackTrace();
+           }
          }
 
          break;
@@ -116,40 +119,49 @@ class StudentSocketImpl extends BaseSocketImpl {
       case SYN_SENT:
          System.out.println("Made it in to SYN_SENT");
 
-         localSeqNumber = p.seqNum;
-         localSeqNumberStep = localSeqNumber + 1;
-         localSourcAddr = p.sourceAddr;
-         localSourcePort = p.sourcePort;
+         if (p.synFlag || p.ackFlag){
 
-         talkback = new TCPPacket(localport, localSourcePort, -2, localSeqNumberStep, true, false, false, winSize, payload);
-         TCPWrapper.send(talkback, localSourcAddr);
+           localSeqNumber = p.seqNum;
+           localSeqNumberStep = localSeqNumber + 1;
+           localSourcAddr = p.sourceAddr;
+           localSourcePort = p.sourcePort;
 
-         stateMovement(curState, State.ESTABLISHED);
+           talkback = new TCPPacket(localport, localSourcePort, -2, localSeqNumberStep, true, false, false, winSize, payload);
+           TCPWrapper.send(talkback, localSourcAddr);
+
+           stateMovement(curState, State.ESTABLISHED);
+         }
 
          break;
 
       case SYN_RCVD:
          System.out.println("Made it in to SYN_RCVD");
 
-         localSourcePort = p.sourcePort;
+         if (p.ackFlag){
 
-         stateMovement(curState, State.ESTABLISHED);
+           localSourcePort = p.sourcePort;
+
+           stateMovement(curState, State.ESTABLISHED);
+         }
 
          break;
 
       case ESTABLISHED:
          System.out.println("Made it in to ESTABLISHED");
 
-         // TODO: write function for template talkbacks
-         localSeqNumber = p.seqNum;
-         localSeqNumberStep = localSeqNumber + 1;
-         localSourcAddr = p.sourceAddr;
-         localSourcePort = p.sourcePort;
+         if (p.finFlag){
 
-         talkback = new TCPPacket(localport, localSourcePort, -2, localSeqNumberStep, true, false, false, winSize, payload);
-         TCPWrapper.send(talkback, localSourcAddr);
+           // TODO: write function for template talkbacks
+           localSeqNumber = p.seqNum;
+           localSeqNumberStep = localSeqNumber + 1;
+           localSourcAddr = p.sourceAddr;
+           localSourcePort = p.sourcePort;
 
-         stateMovement(curState, State.CLOSE_WAIT);
+           talkback = new TCPPacket(localport, localSourcePort, -2, localSeqNumberStep, true, false, false, winSize, payload);
+           TCPWrapper.send(talkback, localSourcAddr);
+
+           stateMovement(curState, State.CLOSE_WAIT);
+         }
 
          break;
 
@@ -193,10 +205,20 @@ class StudentSocketImpl extends BaseSocketImpl {
 
       case LAST_ACK:
          System.out.println("Made it in to LAST_ACK");
+
+         if(p.ackFlag){
+          stateMovement(curState, State.ESTABLISHED);
+         }
+
          break;
 
       case CLOSING:
          System.out.println("Made it in to CLOSING");
+
+         if(p.ackFlag){
+          stateMovement(curState, State.TIME_WAIT);
+         }
+
          break;
 
       default:
@@ -219,6 +241,18 @@ class StudentSocketImpl extends BaseSocketImpl {
 
     D.registerListeningSocket(this.localport, this);
     stateMovement(State.CLOSED, State.LISTEN);
+
+    // Step 3
+    /*
+    while (curState != State.ESTABLISHED) {
+      try {
+        wait();
+      } 
+      catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+    */
   }
 
   
@@ -260,7 +294,28 @@ class StudentSocketImpl extends BaseSocketImpl {
    * @exception  IOException  if an I/O error occurs when closing this socket.
    */
   public synchronized void close() throws IOException {
-    // TODO
+
+    TCPPacket end = new TCPPacket(this.localport, this.connectedPort, localAckNum, localSeqNumberStep, false, false, true, winSize, payload);
+    TCPWrapper.send(end, localSourcAddr);
+
+    // Test for state response after final packet push
+    if(curState == State.CLOSE_WAIT){
+      stateMovement(curState, State.LAST_ACK);
+    }
+    else if(curState == State.ESTABLISHED){
+      stateMovement(curState, State.FIN_WAIT_1);
+    }
+
+    Thread waitToClose = new Thread(){ 
+      private void run(){
+        while (curState != State.CLOSED){
+            wait();
+        }
+      }
+    }
+    waitToClose.start();
+
+    return;
   }
 
   /** 
