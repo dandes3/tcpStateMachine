@@ -13,7 +13,7 @@ class StudentSocketImpl extends BaseSocketImpl {
   private Timer tcpTimer;  // Given
 
   private static final int winSize = 5;
-  private static final String payload = null; // Un-statify if using payloads
+  private static final byte[] payload = null; // Un-statify if using payloads
   private State curState;
   private int localAckNum;
   private InetAddress localSourcAddr;
@@ -109,7 +109,7 @@ class StudentSocketImpl extends BaseSocketImpl {
             D.unregisterListeningSocket(localport, this);
             D.registerConnection(localSourcAddr, localport, p.sourcePort, this);
            } 
-           catch(InterruptedException e){
+           catch(IOException e){
             e.printStackTrace();
            }
          }
@@ -295,7 +295,7 @@ class StudentSocketImpl extends BaseSocketImpl {
    */
   public synchronized void close() throws IOException {
 
-    TCPPacket end = new TCPPacket(this.localport, this.connectedPort, localAckNum, localSeqNumberStep, false, false, true, winSize, payload);
+    TCPPacket end = new TCPPacket(this.localport, this.localSourcePort, localAckNum, localSeqNumberStep, false, false, true, winSize, payload);
     TCPWrapper.send(end, localSourcAddr);
 
     // Test for state response after final packet push
@@ -306,14 +306,16 @@ class StudentSocketImpl extends BaseSocketImpl {
       stateMovement(curState, State.FIN_WAIT_1);
     }
 
-    Thread waitToClose = new Thread(){ 
-      private void run(){
-        while (curState != State.CLOSED){
-            wait();
-        }
-      }
+    //closePause(this);
+
+    while(curState != State.CLOSED){
+      try{
+        wait();
+       } 
+       catch(InterruptedException e){
+         e.printStackTrace();
+       }
     }
-    waitToClose.start();
 
     return;
   }
@@ -343,7 +345,28 @@ class StudentSocketImpl extends BaseSocketImpl {
     tcpTimer = null;
   }
 
+/*
+  public synchronized void closePause(StudentSocketImpl puller){
+    Thread waitToClose = new Thread(StudentSocketImpl puller, State closed){ 
+        public void run(StudentSocketImpl puller, State closed){
+          while (puller.returnState() != closed){
+              wait();
+          }
+        }
+    };
+    waitToClose.start(this, State.CLOSED);
+
+    return;
+  }
+
+  */
+
   private void stateMovement(State in, State out) {
     System.out.println("!!! " + in + "->" + out);
     curState = out;
   }
+
+  public State returnState(){
+    return curState;
+  }
+}
