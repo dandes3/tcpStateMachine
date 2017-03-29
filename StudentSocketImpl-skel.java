@@ -143,6 +143,11 @@ class StudentSocketImpl extends BaseSocketImpl {
            stateMovement(curState, State.ESTABLISHED);
          }
 
+         else if (p.synFlag){
+
+          TCPWrapper.send(talkback, localSourcAddr);
+         }
+
          break;
 
       case ESTABLISHED:
