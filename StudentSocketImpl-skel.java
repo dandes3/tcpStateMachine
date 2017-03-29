@@ -321,14 +321,17 @@ class StudentSocketImpl extends BaseSocketImpl {
 
     //closePause(this);
 
-    while(curState != State.CLOSED){
-      try{
-        wait();
-       } 
-       catch(InterruptedException e){
-         e.printStackTrace();
-       }
-    }
+    // while(curState != State.CLOSED){
+    //   try{
+    //     wait();
+    //    } 
+    //    catch(InterruptedException e){
+    //      e.printStackTrace();
+    //    }
+    // }
+
+    CloseThread kill = new CloseThread(this);
+    kill.run();
 
     return;
   }
@@ -381,5 +384,26 @@ class StudentSocketImpl extends BaseSocketImpl {
 
   public State returnState(){
     return curState;
+  }
+}
+
+public class CloseThread extends Thread {
+  private StudentSocketImpl sock;
+  
+  public CloseThread(StudentSocketImpl sock){
+    this.sock = sock;
+  }
+  
+  @Override
+  public void run(){
+    while (sock.getState() != State.CLOSED){
+      synchronized(sock){
+        try {
+          sock.wait();
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+    }
   }
 }
