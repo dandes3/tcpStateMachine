@@ -20,6 +20,7 @@ class StudentSocketImpl extends BaseSocketImpl {
   private int localSeqNumber;
   private int localSeqNumberStep;
   private int localSourcePort;
+  private TCPPacket talkback;
 
   // In order
   // Also fuck Java's static enum shit, not proud of this fix
@@ -82,7 +83,6 @@ class StudentSocketImpl extends BaseSocketImpl {
    * @param p The packet that arrived
    */
   public synchronized void receivePacket(TCPPacket p){
-    TCPPacket talkback;
 
     System.out.println("Made it in to receive");
 
