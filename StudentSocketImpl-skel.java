@@ -22,6 +22,9 @@ class StudentSocketImpl extends BaseSocketImpl {
   private int localSeqNumberStep;
   private InetAddress localSourcAddr;
 
+  private TCPPacket lastPack;
+  private TCPPacket lastAck;
+
 
   // In order
   // Also fuck Java's static enum shit
@@ -61,14 +64,13 @@ class StudentSocketImpl extends BaseSocketImpl {
 
     // Make connection, wrap the packet and shoot it out
     D.registerConnection(address, this.localport, port, this);
-    initSYN = new TCPPacket(this.localport, port, localAckNum, localSeqNumberStep, false, true, false, winSize, payload);
-    TCPWrapper.send(initSYN, address);
+
+    wrapAndSend(this.localport, port, localAckNum, localSeqNumberStep, false, true, false, address);
 
     // State printout
-    stateMovement(State.CLOSED, State.SYN_SENT);
-
+    curState = stateMovement(State.CLOSED, State.SYN_SENT);
+    
     // Step 3 
-     
     while (curState != State.ESTABLISHED){
       try{
        wait();
@@ -98,10 +100,9 @@ class StudentSocketImpl extends BaseSocketImpl {
            localSourcAddr = p.sourceAddr;
            localAckNum = p.ackNum;
 
-           talkback = new TCPPacket(localport, p.sourcePort, localAckNum, localSeqNumberStep, true, true, false, winSize, payload); 
-           TCPWrapper.send(talkback, localSourcAddr);
+           wrapAndSend(localport, p.sourcePort, localAckNum, localSeqNumberStep, true, true, false, localSourcAddr); 
 
-           stateMovement(curState, State.SYN_RCVD);
+           curState = stateMovement(curState, State.SYN_RCVD);
 
            // Keeps bugging for this try/catch
            // bleh
@@ -126,10 +127,9 @@ class StudentSocketImpl extends BaseSocketImpl {
            localSourcAddr = p.sourceAddr;
            localSourcePort = p.sourcePort;
 
-           talkback = new TCPPacket(localport, localSourcePort, -2, localSeqNumberStep, true, false, false, winSize, payload);
-           TCPWrapper.send(talkback, localSourcAddr);
+           wrapAndSend(localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
 
-           stateMovement(curState, State.ESTABLISHED);
+           curState = stateMovement(curState, State.ESTABLISHED);
          }
 
          break;
@@ -141,7 +141,7 @@ class StudentSocketImpl extends BaseSocketImpl {
 
            localSourcePort = p.sourcePort;
 
-           stateMovement(curState, State.ESTABLISHED);
+           curState = stateMovement(curState, State.ESTABLISHED);
          }
 
          else if (p.synFlag){
@@ -162,10 +162,9 @@ class StudentSocketImpl extends BaseSocketImpl {
            localSourcAddr = p.sourceAddr;
            localSourcePort = p.sourcePort;
 
-           talkback = new TCPPacket(localport, localSourcePort, -2, localSeqNumberStep, true, false, false, winSize, payload);
-           TCPWrapper.send(talkback, localSourcAddr);
+           wrapAndSend(localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
 
-           stateMovement(curState, State.CLOSE_WAIT);
+           curState = stateMovement(curState, State.CLOSE_WAIT);
          }
 
          break;
@@ -179,14 +178,13 @@ class StudentSocketImpl extends BaseSocketImpl {
           localSourcAddr = p.sourceAddr;
           localAckNum = p.ackNum;
 
-          talkback = new TCPPacket(localport, localSourcePort, -2, localSeqNumberStep, true, false, false, winSize, payload);
-          TCPWrapper.send(talkback, localSourcAddr);
+          wrapAndSend(localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
 
-          stateMovement(curState, State.CLOSING);
+          curState = stateMovement(curState, State.CLOSING);
          }
 
          else if (p.ackFlag){
-          stateMovement(curState, State.FIN_WAIT_2);
+          curState = stateMovement(curState, State.FIN_WAIT_2);
          }
 
          break;
@@ -200,10 +198,9 @@ class StudentSocketImpl extends BaseSocketImpl {
           localSourcAddr = p.sourceAddr;
           localAckNum = p.ackNum;
 
-          talkback = new TCPPacket(localport, localSourcePort, -2, localSeqNumberStep, true, false, false, winSize, payload);
-          TCPWrapper.send(talkback, localSourcAddr);
+          wrapAndSend(localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
 
-          stateMovement(curState, State.TIME_WAIT);
+          curState = stateMovement(curState, State.TIME_WAIT);
          }
 
          break;
@@ -212,7 +209,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          System.out.println("Made it in to LAST_ACK");
 
          if(p.ackFlag){
-          stateMovement(curState, State.TIME_WAIT);
+          curState = stateMovement(curState, State.TIME_WAIT);
          }
 
          break;
@@ -231,7 +228,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          System.out.println("Made it in to CLOSING");
 
          if(p.ackFlag){
-          stateMovement(curState, State.TIME_WAIT);
+          curState = stateMovement(curState, State.TIME_WAIT);
          }
 
          break;
@@ -255,7 +252,7 @@ class StudentSocketImpl extends BaseSocketImpl {
     System.out.println("Made it in to AcceptConnection");
 
     D.registerListeningSocket(this.localport, this);
-    stateMovement(State.CLOSED, State.LISTEN);
+    curState = stateMovement(State.CLOSED, State.LISTEN);
 
     // Step 3
   
@@ -309,27 +306,15 @@ class StudentSocketImpl extends BaseSocketImpl {
    */
   public synchronized void close() throws IOException {
 
-    TCPPacket end = new TCPPacket(this.localport, this.localSourcePort, localAckNum, localSeqNumberStep, false, false, true, winSize, payload);
-    TCPWrapper.send(end, localSourcAddr);
+    wrapAndSend(this.localport, this.localSourcePort, localAckNum, localSeqNumberStep, false, false, true, localSourcAddr);
 
     // Test for state response after final packet push
     if(curState == State.CLOSE_WAIT){
-      stateMovement(curState, State.LAST_ACK);
+      curState = stateMovement(curState, State.LAST_ACK);
     }
     else if(curState == State.ESTABLISHED){
-      stateMovement(curState, State.FIN_WAIT_1);
+      curState = stateMovement(curState, State.FIN_WAIT_1);
     }
-
-    //closePause(this);
-
-    // while(curState != State.CLOSED){
-    //   try{
-    //     wait();
-    //    } 
-    //    catch(InterruptedException e){
-    //      e.printStackTrace();
-    //    }
-    // }
 
     CloseThread kill = new CloseThread(this);
     kill.run();
@@ -355,32 +340,33 @@ class StudentSocketImpl extends BaseSocketImpl {
    * information.
    */
   public synchronized void handleTimer(Object ref){
-    // TODO
 
     // this must run only once the last timer (30 second timer) has expired
     tcpTimer.cancel();
     tcpTimer = null;
+
+    if(curState != State.TIME_WAIT){
+      TCPWrapper.send(talkback, localSourcAddr);
+    }
+
+    else{
+      curState = stateMovement(curState, State.CLOSED);
+      this.notifyAll();
+
+      try {
+           D.unregisterConnection(localSourcAddr, localport, localSourcePort, this);
+      } catch (IOException e) {
+          e.printStackTrace();
+      }
+
+     
+    }
+
   }
 
-/*
-  public synchronized void closePause(StudentSocketImpl puller){
-    Thread waitToClose = new Thread(StudentSocketImpl puller, State closed){ 
-        public void run(StudentSocketImpl puller, State closed){
-          while (puller.returnState() != closed){
-              wait();
-          }
-        }
-    };
-    waitToClose.start(this, State.CLOSED);
-
-    return;
-  }
-
-  */
-
-  private void stateMovement(State in, State out) {
+  private State stateMovement(State in, State out) {
     System.out.println("!!! " + in + "->" + out);
-    curState = out;
+    return out;
   }
 
   public State returnState(){
@@ -391,10 +377,24 @@ class StudentSocketImpl extends BaseSocketImpl {
     return State.CLOSED;
   }
 
+  private void wrapAndSend(int sourcePortP, int destPortP, int seqNumP, int ackNumP, boolean first, boolean second, boolean third, InetAddress sendTo){
+
+    TCPPacket push = new TCPPacket(sourcePortP, destPortP, seqNumP, ackNumP, first, second, third, winSize, payload);
+    TCPWrapper.send(push, sendTo);
+
+    if (!push.ackFlag || push.synFlag){
+      lastPack = push;
+      createTimerTask(2000, null);
+    }
+    
+    else
+      lastAck = push;
+  }
+
   
 }
 
-class CloseThread extends Thread{
+class CloseThread implements Runnable {
 
     private StudentSocketImpl threadToKill;
 
@@ -402,7 +402,6 @@ class CloseThread extends Thread{
       this.threadToKill = passed;
     }
     
-    //@Override
     public void run(){
       while (threadToKill.returnState() != threadToKill.returnClosed()){
         //synchronized(threadToKill){
