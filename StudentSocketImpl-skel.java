@@ -167,7 +167,7 @@ class StudentSocketImpl extends BaseSocketImpl {
       case FIN_WAIT_1:
          System.out.println("Made it in to FIN_WAIT_1");
 
-         if(p.finFlag && !p.ackFlag){
+         if(p.finFlag){
           localSeqNumber = p.seqNum; 
           localSeqNumberStep = localSeqNumber + 1;
           localSourcAddr = p.sourceAddr;
@@ -197,7 +197,7 @@ class StudentSocketImpl extends BaseSocketImpl {
           talkback = new TCPPacket(localport, localSourcePort, -2, localSeqNumberStep, true, false, false, winSize, payload);
           TCPWrapper.send(talkback, localSourcAddr);
 
-          stateMovement(curState, State.CLOSED);
+          stateMovement(curState, State.TIME_WAIT);
          }
 
          break;
@@ -206,8 +206,18 @@ class StudentSocketImpl extends BaseSocketImpl {
          System.out.println("Made it in to LAST_ACK");
 
          if(p.ackFlag){
-          stateMovement(curState, State.ESTABLISHED);
+          stateMovement(curState, State.TIME_WAIT);
          }
+
+         break;
+
+      case CLOSE_WAIT:
+         System.out.println("Made it in to CLOSE_WAIT");
+
+         break;
+
+      case TIME_WAIT:
+         System.out.println("Made it in to TIME_WAIT");
 
          break;
 
