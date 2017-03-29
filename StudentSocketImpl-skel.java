@@ -385,25 +385,27 @@ class StudentSocketImpl extends BaseSocketImpl {
   public State returnState(){
     return curState;
   }
-}
 
-public class CloseThread extends Thread {
-  private StudentSocketImpl sock;
-  
-  public CloseThread(StudentSocketImpl sock){
-    this.sock = sock;
-  }
-  
-  @Override
-  public void run(){
-    while (sock.getState() != State.CLOSED){
-      synchronized(sock){
-        try {
-          sock.wait();
-        } catch (InterruptedException e) {
-          e.printStackTrace();
+  private class CloseThread extends Thread {
+    private StudentSocketImpl sock;
+    
+    public CloseThread(StudentSocketImpl sock){
+      this.sock = sock;
+    }
+    
+    @Override
+    public void run(){
+      while (sock.getState() != State.CLOSED){
+        synchronized(sock){
+          try {
+            sock.wait();
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
         }
       }
     }
   }
 }
+
+
