@@ -346,7 +346,7 @@ class StudentSocketImpl extends BaseSocketImpl {
     tcpTimer = null;
 
     if(curState != State.TIME_WAIT){
-      TCPWrapper.send(talkback, localSourcAddr);
+      TCPWrapper.send(lastPack, localSourcAddr);
     }
 
     else{
