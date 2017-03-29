@@ -396,9 +396,9 @@ class StudentSocketImpl extends BaseSocketImpl {
 class CloseThread extends Thread{
 
     private StudentSocketImpl threadToKill;
-    
-    public CloseThread(StudentSocketImpl sock){
-      this.threadToKill = threadToKill;
+
+    public CloseThread(StudentSocketImpl passed){
+      this.threadToKill = passed;
     }
     
     @Override
