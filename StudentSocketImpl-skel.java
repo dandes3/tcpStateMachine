@@ -394,25 +394,23 @@ class StudentSocketImpl extends BaseSocketImpl {
 }
 
 class CloseThread extends Thread{
-  //enum State{CLOSED}
 
-
-    private StudentSocketImpl sock;
+    private StudentSocketImpl threadToKill;
     
     public CloseThread(StudentSocketImpl sock){
-      this.sock = sock;
+      this.threadToKill = threadToKill;
     }
     
     @Override
     public void run(){
-      while (sock.returnState() != sock.returnClosed()){
-        synchronized(sock){
-          try {
-            sock.wait();
-          } catch (InterruptedException e) {
-            e.printStackTrace();
-          }
+      while (threadToKill.returnState() != threadToKill.returnClosed()){
+        //synchronized(threadToKill){
+        try {
+          threadToKill.wait();
+        } catch (InterruptedException e) {
+          e.printStackTrace();
         }
+        //}
       }
     }
 }
