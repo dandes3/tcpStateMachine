@@ -345,11 +345,8 @@ class StudentSocketImpl extends BaseSocketImpl {
     tcpTimer.cancel();
     tcpTimer = null;
 
-    if(curState != State.TIME_WAIT){
-      TCPWrapper.send(lastPack, localSourcAddr);
-    }
+    if(curState == State.TIME_WAIT){
 
-    else{
       curState = stateMovement(curState, State.CLOSED);
       this.notifyAll();
 
@@ -358,8 +355,11 @@ class StudentSocketImpl extends BaseSocketImpl {
       } catch (IOException e) {
           e.printStackTrace();
       }
+      
+    }
 
-     
+    else{
+      TCPWrapper.send(lastPack, localSourcAddr);  
     }
 
   }
