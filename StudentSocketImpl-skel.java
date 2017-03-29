@@ -16,14 +16,15 @@ class StudentSocketImpl extends BaseSocketImpl {
   private static final byte[] payload = null; // Un-statify if using payloads
   private State curState;
   private int localAckNum;
-  private InetAddress localSourcAddr;
-  private int localSeqNumber;
-  private int localSeqNumberStep;
-  private int localSourcePort;
   private TCPPacket talkback;
+  private int localSeqNumber;
+  private int localSourcePort;
+  private int localSeqNumberStep;
+  private InetAddress localSourcAddr;
+
 
   // In order
-  // Also fuck Java's static enum shit, not proud of this fix
+  // Also fuck Java's static enum shit
   enum State { 
     CLOSED{@Override public String toString(){return "CLOSED";}}, 
     LISTEN{@Override public String toString(){return "LISTEN";}}, 
@@ -401,7 +402,7 @@ class CloseThread extends Thread{
       this.threadToKill = passed;
     }
     
-    @Override
+    //@Override
     public void run(){
       while (threadToKill.returnState() != threadToKill.returnClosed()){
         //synchronized(threadToKill){
