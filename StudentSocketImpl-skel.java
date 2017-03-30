@@ -120,7 +120,10 @@ class StudentSocketImpl extends BaseSocketImpl {
       case SYN_SENT:
          System.out.println("Made it in to SYN_SENT");
 
-         if (p.synFlag || p.ackFlag){
+         if (p.synFlag && p.ackFlag){
+
+           tcpTimer.cancel(); //Cancel timer for sent SYN
+           tcpTimer = null;
 
            localSeqNumber = p.seqNum;
            localSeqNumberStep = localSeqNumber + 1;
@@ -139,14 +142,16 @@ class StudentSocketImpl extends BaseSocketImpl {
 
          if (p.ackFlag){
 
+           tcpTimer.cancel(); //Cancel timer for sent SYN+ACK
+           tcpTimer = null;
+
            localSourcePort = p.sourcePort;
 
            curState = stateMovement(curState, State.ESTABLISHED);
          }
 
          else if (p.synFlag){
-
-          TCPWrapper.send(talkback, localSourcAddr);
+          wrapAndSend(false, lastPack, this.localport, this.localSourcePort, localAckNum, localSeqNumberStep, false, false, true, localSourcAddr);
          }
 
          break;
@@ -165,6 +170,10 @@ class StudentSocketImpl extends BaseSocketImpl {
            wrapAndSend(false, lastPack, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
 
            curState = stateMovement(curState, State.CLOSE_WAIT);
+         }
+
+         else if (p.ackFlag && p.synFlag){
+          wrapAndSend(false, lastAck, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
          }
 
          break;
@@ -189,6 +198,8 @@ class StudentSocketImpl extends BaseSocketImpl {
 
          else if (p.ackFlag){
           curState = stateMovement(curState, State.FIN_WAIT_2);
+          tcpTimer.cancel();
+          tcpTimer = null;
          }
 
          break;
@@ -222,6 +233,7 @@ class StudentSocketImpl extends BaseSocketImpl {
 
           tcpTimer.cancel();
           tcpTimer = null;
+
           curState = stateMovement(curState, State.TIME_WAIT);
           createTimerTask(30 * 1000, null);
          }
@@ -231,10 +243,18 @@ class StudentSocketImpl extends BaseSocketImpl {
       case CLOSE_WAIT:
          System.out.println("Made it in to CLOSE_WAIT");
 
+         if (p.finFlag){
+          wrapAndSend(false, lastAck, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
+         }
+
          break;
 
       case TIME_WAIT:
          System.out.println("Made it in to TIME_WAIT");
+
+         if (p.finFlag){
+          wrapAndSend(false, lastAck, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
+         }
 
          break;
 
@@ -246,6 +266,10 @@ class StudentSocketImpl extends BaseSocketImpl {
          }
 
          if(p.ackFlag){
+
+          tcpTimer.cancel(); //Cancel timer for sent fin
+          tcpTimer = null; 
+
           curState = stateMovement(curState, State.TIME_WAIT);
           createTimerTask(30 * 1000, null);
          }
@@ -378,7 +402,7 @@ class StudentSocketImpl extends BaseSocketImpl {
     }
 
     else{
-      TCPWrapper.send(lastPack, localSourcAddr);  
+      wrapAndSend(false, lastPack, this.localport, this.localSourcePort, localAckNum, localSeqNumberStep, false, false, true, localSourcAddr);
     }
 
   }
