@@ -58,7 +58,7 @@ class StudentSocketImpl extends BaseSocketImpl {
   public synchronized void connect(InetAddress address, int port) throws IOException{
     TCPPacket initSYN;
 
-    localAckNum = 5;
+    localAckNum = 3;
     localSeqNumberStep = 8; // Uniformity
     localport = D.getNextAvailablePort();
 
@@ -397,7 +397,7 @@ class StudentSocketImpl extends BaseSocketImpl {
     }
 
     else{
-      wrapAndSend(false, lastPack, this.localport, this.localSourcePort, localAckNum, localSeqNumberStep, false, false, true, localSourcAddr);
+      wrapAndSend(true, lastPack, this.localport, this.localSourcePort, localAckNum, localSeqNumberStep, false, false, true, localSourcAddr);
     }
 
   }
@@ -430,7 +430,7 @@ class StudentSocketImpl extends BaseSocketImpl {
 
     if (!push.ackFlag || push.synFlag){
       lastPack = push;
-      createTimerTask(2000, null);
+      createTimerTask(1000, null);
     }
     
     else
