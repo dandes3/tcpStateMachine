@@ -25,6 +25,8 @@ class StudentSocketImpl extends BaseSocketImpl {
   private TCPPacket lastPack;
   private TCPPacket lastAck;
 
+  private int counter;
+
 
   // In order
   // Also fuck Java's static enum shit
@@ -446,7 +448,9 @@ class StudentSocketImpl extends BaseSocketImpl {
     System.out.println("Sending packet");
     //System.out.println("I was called by " + curState);
 
-    if(curState == State.CLOSED && prePack == true){
+    counter += 1;
+
+    if(curState == State.CLOSED && counter > 0){
       this.notifyAll();
       return;
     }
