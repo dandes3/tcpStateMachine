@@ -446,7 +446,9 @@ class StudentSocketImpl extends BaseSocketImpl {
   private void wrapAndSend(boolean prePack, TCPPacket passed, int sourcePortP, int destPortP, int seqNumP, int ackNumP, boolean first, boolean second, boolean third, InetAddress sendTo){
     System.out.println("wrapAndSend was called");
     
-    //System.out.println("I was called by " + curState);
+    System.out.println("curState is " + curState);
+    System.out.println("counter is " + counter);
+
 
     if(curState == State.CLOSED && counter > 0){
       notifyAll();
