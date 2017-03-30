@@ -61,6 +61,7 @@ class StudentSocketImpl extends BaseSocketImpl {
     localAckNum = 3;
     localSeqNumberStep = 8; // Uniformity
     localport = D.getNextAvailablePort();
+    localSourcAddr = address;
 
     // Make connection, wrap the packet and shoot it out
     D.registerConnection(address, this.localport, port, this);
