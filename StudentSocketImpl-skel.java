@@ -397,7 +397,7 @@ class StudentSocketImpl extends BaseSocketImpl {
     }
 
     else{
-      wrapAndSend(true, lastPack, this.localport, this.localSourcePort, localAckNum, localSeqNumberStep, false, false, true, localSourcAddr);
+      wrapAndSend(true, lastPack, 0, 0, 0, 0, false, false, false, localSourcAddr);
     }
 
   }
