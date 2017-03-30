@@ -254,11 +254,20 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case TIME_WAIT:
-         //System.out.println("Made it in to TIME_WAIT");
+         System.out.println("Made it in to TIME_WAIT");
 
-         if (p.finFlag){
-          wrapAndSend(true, lastAck, 0, 0, 0, 0, false, false, false, localSourcAddr);
-         }
+          try {
+              if (p.finFlag){
+                wrapAndSend(true, lastAck, 0, 0, 0, 0, false, false, false, localSourcAddr);
+              }
+          } catch (Exception e) {
+              System.out.println("You done messed up Aaron");
+
+
+              e.printStackTrace();
+          }
+
+         
 
          break;
 
