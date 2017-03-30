@@ -92,7 +92,7 @@ class StudentSocketImpl extends BaseSocketImpl {
 
     switch (curState){
       case LISTEN:
-         //System.out.println("Made it in to LISTEN");
+         System.out.println("Made it in to LISTEN");
 
          if (!p.ackFlag && p.synFlag){
 
@@ -119,7 +119,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case SYN_SENT:
-         //System.out.println("Made it in to SYN_SENT");
+         System.out.println("Made it in to SYN_SENT");
 
          if (p.synFlag && p.ackFlag){
 
@@ -141,7 +141,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case SYN_RCVD:
-         //System.out.println("Made it in to SYN_RCVD");
+         System.out.println("Made it in to SYN_RCVD");
 
          if (p.ackFlag){
 
@@ -159,7 +159,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case ESTABLISHED:
-         //System.out.println("Made it in to ESTABLISHED");
+         System.out.println("Made it in to ESTABLISHED");
 
          if (p.finFlag){
 
@@ -180,7 +180,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case FIN_WAIT_1:
-         //System.out.println("Made it in to FIN_WAIT_1");
+         System.out.println("Made it in to FIN_WAIT_1");
 
          if (p.ackFlag && p.synFlag){
           wrapAndSend(true, lastAck, 0, 0, 0, 0, false, false, false, localSourcAddr);
@@ -228,7 +228,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case LAST_ACK:
-         //System.out.println("Made it in to LAST_ACK");
+         System.out.println("Made it in to LAST_ACK");
 
          if (p.finFlag){
           wrapAndSend(true, lastAck, 0, 0, 0, 0, false, false, false, localSourcAddr);
@@ -245,7 +245,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case CLOSE_WAIT:
-         //System.out.println("Made it in to CLOSE_WAIT");
+         System.out.println("Made it in to CLOSE_WAIT");
 
          if (p.finFlag){
           wrapAndSend(true, lastAck, 0, 0, 0, 0, false, false, false, localSourcAddr);         
@@ -272,7 +272,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case CLOSING:
-         //System.out.println("Made it in to CLOSING");
+         System.out.println("Made it in to CLOSING");
 
          if (p.finFlag){
           wrapAndSend(true, lastAck, 0, 0, 0, 0, false, false, false, localSourcAddr);
