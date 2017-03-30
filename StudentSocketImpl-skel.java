@@ -65,7 +65,7 @@ class StudentSocketImpl extends BaseSocketImpl {
     // Make connection, wrap the packet and shoot it out
     D.registerConnection(address, this.localport, port, this);
 
-    wrapAndSend(this.localport, port, localAckNum, localSeqNumberStep, false, true, false, address);
+    wrapAndSend(false, lastPack, this.localport, port, localAckNum, localSeqNumberStep, false, true, false, address);
 
     // State printout
     curState = stateMovement(State.CLOSED, State.SYN_SENT);
@@ -100,7 +100,7 @@ class StudentSocketImpl extends BaseSocketImpl {
            localSourcAddr = p.sourceAddr;
            localAckNum = p.ackNum;
 
-           wrapAndSend(localport, p.sourcePort, localAckNum, localSeqNumberStep, true, true, false, localSourcAddr); 
+           wrapAndSend(false, lastPack, localport, p.sourcePort, localAckNum, localSeqNumberStep, true, true, false, localSourcAddr); 
 
            curState = stateMovement(curState, State.SYN_RCVD);
 
@@ -127,7 +127,7 @@ class StudentSocketImpl extends BaseSocketImpl {
            localSourcAddr = p.sourceAddr;
            localSourcePort = p.sourcePort;
 
-           wrapAndSend(localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
+           wrapAndSend(false, lastPack, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
 
            curState = stateMovement(curState, State.ESTABLISHED);
          }
@@ -162,7 +162,7 @@ class StudentSocketImpl extends BaseSocketImpl {
            localSourcAddr = p.sourceAddr;
            localSourcePort = p.sourcePort;
 
-           wrapAndSend(localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
+           wrapAndSend(false, lastPack, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
 
            curState = stateMovement(curState, State.CLOSE_WAIT);
          }
@@ -173,7 +173,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          System.out.println("Made it in to FIN_WAIT_1");
 
          if (p.ackFlag && p.synFlag){
-          sendPacket(lastAck, connectedAddr);
+          wrapAndSend(true, lastAck, 0, 0, 0, 0, false, false, false, localSourcAddr);
          }
 
          if(p.finFlag){
@@ -182,7 +182,7 @@ class StudentSocketImpl extends BaseSocketImpl {
           localSourcAddr = p.sourceAddr;
           localAckNum = p.ackNum;
 
-          wrapAndSend(localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
+          wrapAndSend(false, lastPack, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
 
           curState = stateMovement(curState, State.CLOSING);
          }
@@ -202,7 +202,7 @@ class StudentSocketImpl extends BaseSocketImpl {
           localSourcAddr = p.sourceAddr;
           localAckNum = p.ackNum;
 
-          wrapAndSend(localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
+          wrapAndSend(false, lastPack, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
 
           curState = stateMovement(curState, State.TIME_WAIT);
 
@@ -215,7 +215,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          System.out.println("Made it in to LAST_ACK");
 
          if (p.finFlag){
-          sendPacket(lastAck, connectedAddr);
+          wrapAndSend(true, lastAck, 0, 0, 0, 0, false, false, false, localSourcAddr);
          } 
 
          if(p.ackFlag){
@@ -242,7 +242,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          System.out.println("Made it in to CLOSING");
 
          if (p.finFlag){
-          sendPacket(lastAck, connectedAddr);
+          wrapAndSend(true, lastAck, 0, 0, 0, 0, false, false, false, localSourcAddr);
          }
 
          if(p.ackFlag){
@@ -325,7 +325,7 @@ class StudentSocketImpl extends BaseSocketImpl {
    */
   public synchronized void close() throws IOException {
 
-    wrapAndSend(this.localport, this.localSourcePort, localAckNum, localSeqNumberStep, false, false, true, localSourcAddr);
+    wrapAndSend(false, lastPack, this.localport, this.localSourcePort, localAckNum, localSeqNumberStep, false, false, true, localSourcAddr);
 
     // Test for state response after final packet push
     if(curState == State.CLOSE_WAIT){
@@ -396,9 +396,17 @@ class StudentSocketImpl extends BaseSocketImpl {
     return State.CLOSED;
   }
 
-  private void wrapAndSend(int sourcePortP, int destPortP, int seqNumP, int ackNumP, boolean first, boolean second, boolean third, InetAddress sendTo){
+  private void wrapAndSend(boolean prePack, TCPPacket passed, int sourcePortP, int destPortP, int seqNumP, int ackNumP, boolean first, boolean second, boolean third, InetAddress sendTo){
 
-    TCPPacket push = new TCPPacket(sourcePortP, destPortP, seqNumP, ackNumP, first, second, third, winSize, payload);
+    TCPPacket push;
+
+    if(prePack){
+      push = passed;
+    }
+    else{
+      push = new TCPPacket(sourcePortP, destPortP, seqNumP, ackNumP, first, second, third, winSize, payload);
+    }
+
     TCPWrapper.send(push, sendTo);
 
     if (!push.ackFlag || push.synFlag){
