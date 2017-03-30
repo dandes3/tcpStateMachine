@@ -60,8 +60,8 @@ class StudentSocketImpl extends BaseSocketImpl {
   public synchronized void connect(InetAddress address, int port) throws IOException{
     TCPPacket initSYN;
 
-    
-    counter = counter -1;
+    counter = counter -1; // Weird double send fix
+
     localAckNum = 3;
     localSeqNumberStep = 8; // Uniformity
     localSourcAddr = address;
@@ -69,7 +69,6 @@ class StudentSocketImpl extends BaseSocketImpl {
 
     // Make connection, wrap the packet and shoot it out
     D.registerConnection(address, this.localport, port, this);
-
     wrapAndSend(false, lastPack, this.localport, port, localAckNum, localSeqNumberStep, false, true, false, localSourcAddr);
 
     // State printout
@@ -92,7 +91,7 @@ class StudentSocketImpl extends BaseSocketImpl {
    */
   public synchronized void receivePacket(TCPPacket p){
 
-    //System.out.println("Made it in to receive");
+    System.out.println("Made it in to receive");
 
     switch (curState){
       case LISTEN:
@@ -134,7 +133,6 @@ class StudentSocketImpl extends BaseSocketImpl {
            localSourcAddr = p.sourceAddr;
            localSourcePort = p.sourcePort;
 
-           
            wrapAndSend(false, lastPack, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
 
            localSourcePort = p.sourcePort;
@@ -447,12 +445,12 @@ class StudentSocketImpl extends BaseSocketImpl {
 
   private void wrapAndSend(boolean prePack, TCPPacket passed, int sourcePortP, int destPortP, int seqNumP, int ackNumP, boolean first, boolean second, boolean third, InetAddress sendTo){
     System.out.println("wrapAndSend was called");
-    
-    System.out.println("curState is " + curState);
-    System.out.println("counter is " + counter);
 
 
+    // For some reason after the connection is naturally shut down, it calls another instance of wrapAndSend
+    // This is a "temporary" fix (read: not temporary at all)
     if(curState == State.CLOSED && counter > 0){
+      System.out.println("Killed a wrapAndSend call");
       notifyAll();
       return;
     }
