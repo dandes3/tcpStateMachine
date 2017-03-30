@@ -406,11 +406,11 @@ class StudentSocketImpl extends BaseSocketImpl {
         curState = stateMovement(curState, State.CLOSED);      
       } catch (Exception e) {
           System.out.println("Caught an exception in curstate");
-          this.notifyAll();
+          notifyAll();
       }
       System.out.println("Updated");
 
-      this.notifyAll();
+      notifyAll();
       System.out.println("Notified");
 
       try {
@@ -444,15 +444,15 @@ class StudentSocketImpl extends BaseSocketImpl {
   }
 
   private void wrapAndSend(boolean prePack, TCPPacket passed, int sourcePortP, int destPortP, int seqNumP, int ackNumP, boolean first, boolean second, boolean third, InetAddress sendTo){
-
-    System.out.println("Sending packet");
+    System.out.println("wrapAndSend was called");
+    
     //System.out.println("I was called by " + curState);
 
     if(curState == State.CLOSED && counter > 0){
-      this.notifyAll();
+      notifyAll();
       return;
     }
-    
+
     counter++;
 
     TCPPacket push;
@@ -463,6 +463,8 @@ class StudentSocketImpl extends BaseSocketImpl {
     else{
       push = new TCPPacket(sourcePortP, destPortP, seqNumP, ackNumP, first, second, third, winSize, payload);
     }
+
+    System.out.println("Sending packet");
 
     TCPWrapper.send(push, sendTo);
 
