@@ -60,13 +60,13 @@ class StudentSocketImpl extends BaseSocketImpl {
 
     localAckNum = 3;
     localSeqNumberStep = 8; // Uniformity
-    localport = D.getNextAvailablePort();
     localSourcAddr = address;
+    localport = D.getNextAvailablePort();
 
     // Make connection, wrap the packet and shoot it out
     D.registerConnection(address, this.localport, port, this);
 
-    wrapAndSend(false, lastPack, this.localport, port, localAckNum, localSeqNumberStep, false, true, false, address);
+    wrapAndSend(false, lastPack, this.localport, port, localAckNum, localSeqNumberStep, false, true, false, localSourcAddr);
 
     // State printout
     curState = stateMovement(State.CLOSED, State.SYN_SENT);
@@ -191,6 +191,7 @@ class StudentSocketImpl extends BaseSocketImpl {
           localSeqNumberStep = localSeqNumber + 1;
           localSourcAddr = p.sourceAddr;
           localAckNum = p.ackNum;
+          localSourcePort = p.sourcePort;
 
           wrapAndSend(false, lastPack, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
 
@@ -212,6 +213,7 @@ class StudentSocketImpl extends BaseSocketImpl {
           localSeqNumberStep = localSeqNumber + 1;
           localSourcAddr = p.sourceAddr;
           localAckNum = p.ackNum;
+          localSourcePort = p.sourcePort;
 
           wrapAndSend(false, lastPack, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
 
