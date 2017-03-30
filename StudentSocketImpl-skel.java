@@ -389,11 +389,12 @@ class StudentSocketImpl extends BaseSocketImpl {
     if(curState == State.TIME_WAIT){
 
       curState = stateMovement(curState, State.CLOSED);
-      this.notifyAll();
+      notifyAll();
 
       try {
            D.unregisterConnection(localSourcAddr, localport, localSourcePort, this);
       } catch (Exception e) {
+
           e.printStackTrace();
       }
       
