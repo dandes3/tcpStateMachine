@@ -455,7 +455,7 @@ class StudentSocketImpl extends BaseSocketImpl {
       return;
     }
 
-    counter++;
+    counter = counter + 1;
 
     TCPPacket push;
 
