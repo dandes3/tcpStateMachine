@@ -201,14 +201,16 @@ class StudentSocketImpl extends BaseSocketImpl {
          else if (p.ackFlag){
           curState = stateMovement(curState, State.FIN_WAIT_2);
           killTCPTimer();
+          System.out.println("Finished in FIN_WAIT_1");
          }
 
          break;
 
       case FIN_WAIT_2:
-         //System.out.println("Made it in to FIN_WAIT_2");
+         System.out.println("Made it in to FIN_WAIT_2");
 
          if(p.finFlag){
+          System.out.println("Started action in FIN_WAIT_2");
           //localSeqNumber = p.seqNum; 
           localSeqNumberStep = localSeqNumber + 1;
           //localSourcAddr = p.sourceAddr;
@@ -220,6 +222,7 @@ class StudentSocketImpl extends BaseSocketImpl {
           curState = stateMovement(curState, State.TIME_WAIT);
 
           createTimerTask(15 * 1000, null);
+          System.out.println("Finished in FIN_WAIT_2");
          }
 
          break;
