@@ -200,7 +200,7 @@ class StudentSocketImpl extends BaseSocketImpl {
 
          else if (p.ackFlag){
           curState = stateMovement(curState, State.FIN_WAIT_2);
-          //killTCPTimer();
+          killTCPTimer();
           System.out.println("Finished in FIN_WAIT_1");
          }
 
@@ -397,8 +397,10 @@ class StudentSocketImpl extends BaseSocketImpl {
           System.out.println("Caught an exception in curstate");
           notifyAll();
       }
+      System.out.println("Updated");
 
       notifyAll();
+      System.out.println("Notified");
 
       try {
            D.unregisterConnection(localSourcAddr, localport, localSourcePort, this);
@@ -406,6 +408,8 @@ class StudentSocketImpl extends BaseSocketImpl {
 
           e.printStackTrace();
       }
+
+      System.out.println("Done");
       
     }
 
