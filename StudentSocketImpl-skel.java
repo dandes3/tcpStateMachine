@@ -391,8 +391,8 @@ class StudentSocketImpl extends BaseSocketImpl {
       try {
         curState = stateMovement(curState, State.CLOSED);      
       } catch (Exception e) {
-
-          e.printStackTrace();
+          System.out.println("Caught an exception in curstate");
+          notifyAll();
       }
 
       notifyAll();
