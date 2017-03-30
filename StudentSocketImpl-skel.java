@@ -446,7 +446,7 @@ class StudentSocketImpl extends BaseSocketImpl {
     System.out.println("Sending packet");
     //System.out.println("I was called by " + curState);
 
-    if(curState == State.CLOSED){
+    if(curState == State.CLOSED && prePack == true){
       this.notifyAll();
       return;
     }
