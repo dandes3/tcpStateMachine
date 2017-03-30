@@ -152,7 +152,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          }
 
          else if (p.synFlag){
-          wrapAndSend(false, lastPack, this.localport, this.localSourcePort, localAckNum, localSeqNumberStep, false, false, true, localSourcAddr);
+          wrapAndSend(true, lastPack, 0, 0, 0, 0, false, false, false, localSourcAddr);
          }
 
          break;
@@ -242,7 +242,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          //System.out.println("Made it in to CLOSE_WAIT");
 
          if (p.finFlag){
-          wrapAndSend(false, lastAck, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
+          wrapAndSend(true, lastAck, 0, 0, 0, 0, false, false, false, localSourcAddr);         
          }
 
          break;
@@ -251,7 +251,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          //System.out.println("Made it in to TIME_WAIT");
 
          if (p.finFlag){
-          wrapAndSend(false, lastAck, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
+          wrapAndSend(true, lastAck, 0, 0, 0, 0, false, false, false, localSourcAddr);
          }
 
          break;
