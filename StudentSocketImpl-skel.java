@@ -393,7 +393,7 @@ class StudentSocketImpl extends BaseSocketImpl {
 
       try {
            D.unregisterConnection(localSourcAddr, localport, localSourcePort, this);
-      } catch (IOException e) {
+      } catch (Exception e) {
           e.printStackTrace();
       }
       
