@@ -122,8 +122,7 @@ class StudentSocketImpl extends BaseSocketImpl {
 
          if (p.synFlag && p.ackFlag){
 
-           tcpTimer.cancel(); //Cancel timer for sent SYN
-           tcpTimer = null;
+           killTCPTimer();
 
            localSeqNumber = p.seqNum;
            localSeqNumberStep = localSeqNumber + 1;
@@ -142,8 +141,7 @@ class StudentSocketImpl extends BaseSocketImpl {
 
          if (p.ackFlag){
 
-           tcpTimer.cancel(); //Cancel timer for sent SYN+ACK
-           tcpTimer = null;
+           killTCPTimer();
 
            localSourcePort = p.sourcePort;
 
@@ -198,8 +196,7 @@ class StudentSocketImpl extends BaseSocketImpl {
 
          else if (p.ackFlag){
           curState = stateMovement(curState, State.FIN_WAIT_2);
-          tcpTimer.cancel();
-          tcpTimer = null;
+          killTCPTimer();
          }
 
          break;
@@ -231,8 +228,7 @@ class StudentSocketImpl extends BaseSocketImpl {
 
          if(p.ackFlag){
 
-          tcpTimer.cancel();
-          tcpTimer = null;
+          killTCPTimer();
 
           curState = stateMovement(curState, State.TIME_WAIT);
           createTimerTask(30 * 1000, null);
@@ -267,8 +263,7 @@ class StudentSocketImpl extends BaseSocketImpl {
 
          if(p.ackFlag){
 
-          tcpTimer.cancel(); //Cancel timer for sent fin
-          tcpTimer = null; 
+          killTCPTimer();
 
           curState = stateMovement(curState, State.TIME_WAIT);
           createTimerTask(30 * 1000, null);
@@ -442,7 +437,11 @@ class StudentSocketImpl extends BaseSocketImpl {
       lastAck = push;
   }
 
-  
+  public void killTCPTimer(){
+    tcpTimer.cancel();
+    tcpTimer = null;
+  }
+
 }
 
 class CloseThread implements Runnable {
@@ -455,13 +454,13 @@ class CloseThread implements Runnable {
     
     public void run(){
       while (threadToKill.returnState() != threadToKill.returnClosed()){
-        //synchronized(threadToKill){
+        synchronized(threadToKill){
         try {
           threadToKill.wait();
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
-        //}
+        }
       }
     }
 }
