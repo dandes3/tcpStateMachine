@@ -395,11 +395,11 @@ class StudentSocketImpl extends BaseSocketImpl {
         curState = stateMovement(curState, State.CLOSED);      
       } catch (Exception e) {
           System.out.println("Caught an exception in curstate");
-          notifyAll();
+          this.notifyAll();
       }
       System.out.println("Updated");
 
-      notifyAll();
+      this.notifyAll();
       System.out.println("Notified");
 
       try {
