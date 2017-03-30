@@ -87,11 +87,11 @@ class StudentSocketImpl extends BaseSocketImpl {
    */
   public synchronized void receivePacket(TCPPacket p){
 
-    System.out.println("Made it in to receive");
+    //System.out.println("Made it in to receive");
 
     switch (curState){
       case LISTEN:
-         System.out.println("Made it in to LISTEN");
+         //System.out.println("Made it in to LISTEN");
 
          if (!p.ackFlag || p.synFlag){
 
@@ -118,7 +118,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case SYN_SENT:
-         System.out.println("Made it in to SYN_SENT");
+         //System.out.println("Made it in to SYN_SENT");
 
          if (p.synFlag && p.ackFlag){
 
@@ -137,7 +137,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case SYN_RCVD:
-         System.out.println("Made it in to SYN_RCVD");
+         //System.out.println("Made it in to SYN_RCVD");
 
          if (p.ackFlag){
 
@@ -155,7 +155,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case ESTABLISHED:
-         System.out.println("Made it in to ESTABLISHED");
+         //System.out.println("Made it in to ESTABLISHED");
 
          if (p.finFlag){
 
@@ -177,7 +177,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case FIN_WAIT_1:
-         System.out.println("Made it in to FIN_WAIT_1");
+         //System.out.println("Made it in to FIN_WAIT_1");
 
          if (p.ackFlag && p.synFlag){
           wrapAndSend(true, lastAck, 0, 0, 0, 0, false, false, false, localSourcAddr);
@@ -202,7 +202,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case FIN_WAIT_2:
-         System.out.println("Made it in to FIN_WAIT_2");
+         //System.out.println("Made it in to FIN_WAIT_2");
 
          if(p.finFlag){
           localSeqNumber = p.seqNum; 
@@ -220,7 +220,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case LAST_ACK:
-         System.out.println("Made it in to LAST_ACK");
+         //System.out.println("Made it in to LAST_ACK");
 
          if (p.finFlag){
           wrapAndSend(true, lastAck, 0, 0, 0, 0, false, false, false, localSourcAddr);
@@ -237,7 +237,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case CLOSE_WAIT:
-         System.out.println("Made it in to CLOSE_WAIT");
+         //System.out.println("Made it in to CLOSE_WAIT");
 
          if (p.finFlag){
           wrapAndSend(false, lastAck, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
@@ -246,7 +246,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case TIME_WAIT:
-         System.out.println("Made it in to TIME_WAIT");
+         //System.out.println("Made it in to TIME_WAIT");
 
          if (p.finFlag){
           wrapAndSend(false, lastAck, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
@@ -255,7 +255,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case CLOSING:
-         System.out.println("Made it in to CLOSING");
+         //System.out.println("Made it in to CLOSING");
 
          if (p.finFlag){
           wrapAndSend(true, lastAck, 0, 0, 0, 0, false, false, false, localSourcAddr);
@@ -287,7 +287,7 @@ class StudentSocketImpl extends BaseSocketImpl {
    * Note that localport is already set prior to this being called.
    */
   public synchronized void acceptConnection() throws IOException {
-    System.out.println("Made it in to AcceptConnection");
+    //System.out.println("Made it in to AcceptConnection");
 
     D.registerListeningSocket(this.localport, this);
     curState = stateMovement(State.CLOSED, State.LISTEN);
