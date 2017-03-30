@@ -93,7 +93,7 @@ class StudentSocketImpl extends BaseSocketImpl {
       case LISTEN:
          //System.out.println("Made it in to LISTEN");
 
-         if (!p.ackFlag || p.synFlag){
+         if (!p.ackFlag && p.synFlag){
 
            localSeqNumber = p.seqNum; // Value from a wrapped TCP packet
            localSeqNumberStep = localSeqNumber + 1;
@@ -129,7 +129,10 @@ class StudentSocketImpl extends BaseSocketImpl {
            localSourcAddr = p.sourceAddr;
            localSourcePort = p.sourcePort;
 
+           
            wrapAndSend(false, lastPack, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
+
+           localSourcePort = p.sourcePort;
 
            curState = stateMovement(curState, State.ESTABLISHED);
          }
@@ -159,7 +162,6 @@ class StudentSocketImpl extends BaseSocketImpl {
 
          if (p.finFlag){
 
-           // TODO: write function for template talkbacks
            localSeqNumber = p.seqNum;
            localSeqNumberStep = localSeqNumber + 1;
            localSourcAddr = p.sourceAddr;
@@ -379,9 +381,7 @@ class StudentSocketImpl extends BaseSocketImpl {
    */
   public synchronized void handleTimer(Object ref){
 
-    // this must run only once the last timer (30 second timer) has expired
-    tcpTimer.cancel();
-    tcpTimer = null;
+    killTCPTimer();
 
     if(curState == State.TIME_WAIT){
 
