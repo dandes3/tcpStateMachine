@@ -448,12 +448,12 @@ class StudentSocketImpl extends BaseSocketImpl {
     System.out.println("Sending packet");
     //System.out.println("I was called by " + curState);
 
-    counter += 1;
-
     if(curState == State.CLOSED && counter > 0){
       this.notifyAll();
       return;
     }
+    
+    counter++;
 
     TCPPacket push;
 
