@@ -443,6 +443,8 @@ class StudentSocketImpl extends BaseSocketImpl {
 
   private void wrapAndSend(boolean prePack, TCPPacket passed, int sourcePortP, int destPortP, int seqNumP, int ackNumP, boolean first, boolean second, boolean third, InetAddress sendTo){
 
+    System.out.println("Sending packet");
+
     TCPPacket push;
 
     if(prePack){
