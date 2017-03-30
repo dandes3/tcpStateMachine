@@ -388,7 +388,13 @@ class StudentSocketImpl extends BaseSocketImpl {
 
     if(curState == State.TIME_WAIT){
 
-      curState = stateMovement(curState, State.CLOSED);
+      try {
+        curState = stateMovement(curState, State.CLOSED);      
+      } catch (Exception e) {
+
+          e.printStackTrace();
+      }
+
       notifyAll();
 
       try {
