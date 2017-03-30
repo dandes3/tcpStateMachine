@@ -25,7 +25,7 @@ class StudentSocketImpl extends BaseSocketImpl {
   private TCPPacket lastPack;
   private TCPPacket lastAck;
 
-  private int counter;
+  private int counter = 0;
 
 
   // In order
