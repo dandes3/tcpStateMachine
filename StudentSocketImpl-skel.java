@@ -25,7 +25,7 @@ class StudentSocketImpl extends BaseSocketImpl {
   private TCPPacket lastPack;
   private TCPPacket lastAck;
 
-  private int counter = 0;
+  private int counter = 1;
 
 
   // In order
@@ -60,6 +60,8 @@ class StudentSocketImpl extends BaseSocketImpl {
   public synchronized void connect(InetAddress address, int port) throws IOException{
     TCPPacket initSYN;
 
+    
+    counter = counter -1;
     localAckNum = 3;
     localSeqNumberStep = 8; // Uniformity
     localSourcAddr = address;
