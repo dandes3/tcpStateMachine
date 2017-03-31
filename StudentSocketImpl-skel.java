@@ -473,12 +473,8 @@ class StudentSocketImpl extends BaseSocketImpl {
 
   // Because these two lines were getting repetitive
   public void killTCPTimer(){
-    try{
-      tcpTimer.cancel();
-      tcpTimer = null;
-    } catch (Exception e){
-      // Do nothing and move on
-     }
+    tcpTimer.cancel();
+    tcpTimer = null;
   }
 
   // That's all folks!
