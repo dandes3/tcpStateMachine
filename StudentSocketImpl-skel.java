@@ -350,7 +350,7 @@ class StudentSocketImpl extends BaseSocketImpl {
     }
 
     CloseThread kill = new CloseThread(this);
-    kill.run();
+    kill.start();
 
     return;
   }
@@ -393,9 +393,9 @@ class StudentSocketImpl extends BaseSocketImpl {
 
       try {
            D.unregisterConnection(localSourcAddr, localport, localSourcePort, this);
-      } catch (Exception e) {
-
-          e.printStackTrace();
+      } 
+      catch (Exception e) {
+        e.printStackTrace();
       }
     }
 
@@ -461,15 +461,14 @@ class StudentSocketImpl extends BaseSocketImpl {
   // That's all folks!
 }
 
-class CloseThread implements Runnable {
+class CloseThread extends Thread {
 
   private StudentSocketImpl threadToKill;
-
   public CloseThread(StudentSocketImpl passed){
     this.threadToKill = passed;
   }
   
-  @Override public void run(){
+  public void run(){
     while (threadToKill.returnState(true) != threadToKill.returnState(false)){
       //synchronized(threadToKill)
       try {
