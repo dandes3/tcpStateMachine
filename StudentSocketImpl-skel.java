@@ -203,7 +203,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          else if (p.ackFlag){
           curState = stateMovement(curState, State.FIN_WAIT_2);
           killTCPTimer();
-          System.out.println("Finished in FIN_WAIT_1");
+          //System.out.println("Finished in FIN_WAIT_1");
          }
 
          break;
@@ -398,7 +398,11 @@ class StudentSocketImpl extends BaseSocketImpl {
    */
   public synchronized void handleTimer(Object ref){
 
-    killTCPTimer();
+    try{
+      killTCPTimer();
+    } catch (Exception e){
+      System.out.println("State is " + curState);
+    }
 
     if(curState == State.TIME_WAIT){
 
