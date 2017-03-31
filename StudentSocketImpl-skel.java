@@ -12,7 +12,7 @@ class StudentSocketImpl extends BaseSocketImpl {
   private Demultiplexer D; // Given
   private Timer tcpTimer;  // Given
 
-  private static final int winSize = 10;
+  private static final int winSize = 10; // Doesn't matter
   private static final byte[] payload = null; // Un-statify if using payloads
 
   private State curState;
@@ -30,7 +30,6 @@ class StudentSocketImpl extends BaseSocketImpl {
 
 
   // In order
-  // Also fuck Java's static enum shit
   enum State { 
     CLOSED{@Override public String toString(){return "CLOSED";}}, 
     LISTEN{@Override public String toString(){return "LISTEN";}}, 
@@ -105,7 +104,6 @@ class StudentSocketImpl extends BaseSocketImpl {
            localAckNum = p.ackNum;
 
            wrapAndSend(false, prevBufPack1, localport, p.sourcePort, localAckNum, localSeqNumberStep, true, true, false, localSourcAddr); 
-
            curState = stateMovement(curState, State.SYN_RCVD);
 
            // Keeps bugging for this try/catch
@@ -226,7 +224,6 @@ class StudentSocketImpl extends BaseSocketImpl {
          if(p.ackFlag){
 
           killTCPTimer();
-
           curState = stateMovement(curState, State.TIME_WAIT);
           createTimerTask(15 * 1000, null);
          }
@@ -350,9 +347,15 @@ class StudentSocketImpl extends BaseSocketImpl {
       curState = stateMovement(curState, State.FIN_WAIT_1);
     }
 
-    CloseThread kill = new CloseThread(this);
-    kill.run();
-
+    // As per specifications, this allows a prolonged wait on the thread while still immediately returning (via threading)
+    try{
+     CloseThread kill = new CloseThread(this);
+     kill.run();
+    } 
+    catch (Exception e){
+      e.printStackTrace();
+    }
+    
     return;
   }
 
@@ -462,20 +465,25 @@ class StudentSocketImpl extends BaseSocketImpl {
   // That's all folks!
 }
 
-class CloseThread implements Runnable {
+/**
+ * Extension of a threading run class
+ *  allows the calling thread the immediately return to its parent function
+ *  while performing a wait() call untilt the thread closes itself
+ */
+class CloseThread implements Runnable{
 
   private StudentSocketImpl threadToKill;
-  public CloseThread(StudentSocketImpl passed){
+
+  public CloseThread(StudentSocketImpl passed) throws InterruptedException{
     this.threadToKill = passed;
   }
   
-  public void run(){
+  public void run(){ 
     while (threadToKill.returnState(true) != threadToKill.returnState(false)){
-      //synchronized(threadToKill)
       try {
         threadToKill.wait();
       } 
-      catch (InterruptedException e) {
+      catch (Exception e) {
         e.printStackTrace();
       }
     }
