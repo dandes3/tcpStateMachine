@@ -468,7 +468,7 @@ class CloseThread extends Thread {
     this.threadToKill = passed;
   }
   
-  public void run(){
+  @Override public void run(){
     while (threadToKill.returnState(true) != threadToKill.returnState(false)){
       //synchronized(threadToKill)
       try {
