@@ -428,7 +428,7 @@ class StudentSocketImpl extends BaseSocketImpl {
     }
 
     if(prePack){
-      System.out.println("<>< RE-SENDING DROPPED PACKET");
+      System.out.println("<>< RE-SENDING DROPPED PACKET <><");
     }
 
     counter = counter + 1;
