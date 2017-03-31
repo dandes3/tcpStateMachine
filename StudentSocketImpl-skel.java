@@ -27,18 +27,18 @@ class StudentSocketImpl extends BaseSocketImpl {
   private static final int winSize = 10; // Doesn't matter
   private static final byte[] payload = null; // Un-statify if using payloads
 
-  private State curState;
-  private int localAckNum;
-  private TCPPacket talkback;
-  private int localSeqNumber;
-  private int localSourcePort;
-  private int localSeqNumberStep;
-  private TCPPacket prevBufPack1;
-  private TCPPacket prevBufPack2;
-  private TCPPacket prevBufPack3;
-  private InetAddress localSourcAddr;
+  private State curState; // Internal state of the program
+  private int localAckNum; // Local copy of ackNum
+  private TCPPacket talkback; // Response packet
+  private int localSeqNumber;  // Local copy of SeqNum
+  private int localSourcePort; // Local copy of SourcePort
+  private int localSeqNumberStep; // SeqNum +1, makes calls look prettier
+  private TCPPacket prevBufPack1; // Packet tracking 
+  private TCPPacket prevBufPack2; // Packet tracking
+  private TCPPacket prevBufPack3; // Packet tracking
+  private InetAddress localSourcAddr; // Our interface
 
-  private int counter = 1;
+  private int counter = 1; // Fix for a re-transmission
 
 
   // Ridiculous Enumeration of States for switch statement while preserving printability (at least it looks pretty)
@@ -70,6 +70,8 @@ class StudentSocketImpl extends BaseSocketImpl {
    *               connection.
    */
   public synchronized void connect(InetAddress address, int port) throws IOException{
+
+    // First packet initialization
     TCPPacket initSYN;
 
     counter = counter -1; // Weird double send fix
@@ -118,8 +120,7 @@ class StudentSocketImpl extends BaseSocketImpl {
            wrapAndSend(false, prevBufPack1, localport, p.sourcePort, localAckNum, localSeqNumberStep, true, true, false, localSourcAddr); 
            curState = stateMovement(curState, State.SYN_RCVD);
 
-           // Keeps bugging for this try/catch
-           // bleh
+           // Compiler required try/catch block
            try{
             D.unregisterListeningSocket(localport, this);
             D.registerConnection(localSourcAddr, localport, p.sourcePort, this);
@@ -128,7 +129,6 @@ class StudentSocketImpl extends BaseSocketImpl {
             e.printStackTrace();
            }
          }
-
          break;
 
       case SYN_SENT:
@@ -146,7 +146,6 @@ class StudentSocketImpl extends BaseSocketImpl {
            localSourcePort = p.sourcePort;
            curState = stateMovement(curState, State.ESTABLISHED);
          }
-
          break;
 
       case SYN_RCVD:
@@ -160,7 +159,6 @@ class StudentSocketImpl extends BaseSocketImpl {
          else if (p.synFlag){
           wrapAndSend(true, prevBufPack1, 0, 0, 0, 0, false, false, false, localSourcAddr);
          }
-
          break;
 
       case ESTABLISHED:
@@ -179,7 +177,6 @@ class StudentSocketImpl extends BaseSocketImpl {
          else if (p.ackFlag && p.synFlag){
           wrapAndSend(false, prevBufPack2, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
          }
-
          break;
 
       case FIN_WAIT_1:
@@ -205,7 +202,6 @@ class StudentSocketImpl extends BaseSocketImpl {
 
           curState = stateMovement(curState, State.CLOSING);
          }
-
          break;
 
       case FIN_WAIT_2:
@@ -220,7 +216,6 @@ class StudentSocketImpl extends BaseSocketImpl {
 
           createTimerTask(30 * 1000, null);
          }
-
          break;
 
       case LAST_ACK:
@@ -234,7 +229,6 @@ class StudentSocketImpl extends BaseSocketImpl {
          if (p.finFlag){
           wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr);
          } 
-
          break;
 
       case CLOSE_WAIT:
@@ -242,7 +236,6 @@ class StudentSocketImpl extends BaseSocketImpl {
          if (p.finFlag){
           wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr);         
          }
-
          break;
 
       case TIME_WAIT:
@@ -255,7 +248,6 @@ class StudentSocketImpl extends BaseSocketImpl {
               // This is a really bad catch. This should literally never happen
               e.printStackTrace();
             }
-
          break;
 
       case CLOSING:
@@ -269,9 +261,6 @@ class StudentSocketImpl extends BaseSocketImpl {
           else if (p.finFlag){
             wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr);
           }
-
-         
-
          break;
 
       default:
@@ -399,8 +388,10 @@ class StudentSocketImpl extends BaseSocketImpl {
         notifyAll();
       }
 
-      notifyAll();
+      // Force a wakeup just in case we encounter any errors that killed the last one
+      notifyAll(); 
 
+      // Compiler required try/catch block
       try {
            D.unregisterConnection(localSourcAddr, localport, localSourcePort, this);
       } 

@@ -10,6 +10,8 @@ public class client3 {
 
     try{
       TCPStart.start();
+
+        // Hammer connections at the server and try to break it
         for (int i=0; i<10; i++){
           
           Socket sock = new Socket(argv[0], Integer.parseInt(argv[1]));

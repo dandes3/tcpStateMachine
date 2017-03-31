@@ -11,6 +11,8 @@ public class server3 {
 
     try{
       TCPStart.start();
+
+        // Open ALL THE CONNECTIONS
         for (int i=0; i<10; i++){
 
           ServerSocket sock = new ServerSocket(Integer.parseInt(argv[0]));
