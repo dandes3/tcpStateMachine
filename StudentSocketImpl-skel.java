@@ -350,7 +350,7 @@ class StudentSocketImpl extends BaseSocketImpl {
     }
 
     CloseThread kill = new CloseThread(this);
-    kill.start();
+    kill.run();
 
     return;
   }
@@ -461,14 +461,14 @@ class StudentSocketImpl extends BaseSocketImpl {
   // That's all folks!
 }
 
-class CloseThread extends Thread {
+class CloseThread implements Runnable {
 
   private StudentSocketImpl threadToKill;
   public CloseThread(StudentSocketImpl passed){
     this.threadToKill = passed;
   }
   
-  @Override public void run(){
+  public void run(){
     while (threadToKill.returnState(true) != threadToKill.returnState(false)){
       //synchronized(threadToKill)
       try {
