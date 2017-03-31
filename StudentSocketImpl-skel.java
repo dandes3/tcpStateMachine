@@ -96,6 +96,8 @@ class StudentSocketImpl extends BaseSocketImpl {
       }
     }
   }
+
+  //TODO: sometimes gets stuck sending packets on server side when in LAST_ACK on server and CLOSED on client
   
   /**
    * Called by Demultiplexer when a packet comes in for this connection
