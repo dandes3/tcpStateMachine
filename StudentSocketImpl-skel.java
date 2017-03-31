@@ -91,11 +91,10 @@ class StudentSocketImpl extends BaseSocketImpl {
    */
   public synchronized void receivePacket(TCPPacket p){
 
-    //System.out.println("Made it in to receive");
-
+  //Nintendo 
     switch (curState){
+
       case LISTEN:
-         //System.out.println("Made it in to LISTEN");
 
          if (!p.ackFlag && p.synFlag){
 
@@ -122,7 +121,6 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case SYN_SENT:
-         //System.out.println("Made it in to SYN_SENT");
 
          if (p.synFlag && p.ackFlag){
 
@@ -143,14 +141,10 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case SYN_RCVD:
-         //System.out.println("Made it in to SYN_RCVD");
 
          if (p.ackFlag){
-
            killTCPTimer();
-
            localSourcePort = p.sourcePort;
-
            curState = stateMovement(curState, State.ESTABLISHED);
          }
 
@@ -161,7 +155,6 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case ESTABLISHED:
-         //System.out.println("Made it in to ESTABLISHED");
 
          if (p.finFlag){
 
@@ -182,7 +175,6 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case FIN_WAIT_1:
-         //System.out.println("Made it in to FIN_WAIT_1");
 
          if (p.ackFlag){
           if(p.synFlag){
@@ -209,13 +201,9 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case FIN_WAIT_2:
-         //System.out.println("Made it in to FIN_WAIT_2");
 
          if(p.finFlag){
-          //System.out.println("Started action in FIN_WAIT_2");
-          //localSeqNumber = p.seqNum; 
           localSeqNumberStep = localSeqNumber + 1;
-          //localSourcAddr = p.sourceAddr;
           localAckNum = p.ackNum;
           localSourcePort = p.sourcePort;
 
@@ -224,13 +212,11 @@ class StudentSocketImpl extends BaseSocketImpl {
           curState = stateMovement(curState, State.TIME_WAIT);
 
           createTimerTask(15 * 1000, null);
-          //System.out.println("Finished in FIN_WAIT_2");
          }
 
          break;
 
       case LAST_ACK:
-         //System.out.println("Made it in to LAST_ACK");
 
          if (p.finFlag){
           wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr);
@@ -247,7 +233,6 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case CLOSE_WAIT:
-         //System.out.println("Made it in to CLOSE_WAIT");
 
          if (p.finFlag){
           wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr);         
@@ -256,7 +241,6 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case TIME_WAIT:
-         //System.out.println("Made it in to TIME_WAIT");
 
           try {
               if (p.finFlag){
@@ -270,7 +254,6 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
 
       case CLOSING:
-         //System.out.println("Made it in to CLOSING");
 
          if (p.finFlag){
           wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr);
@@ -301,7 +284,6 @@ class StudentSocketImpl extends BaseSocketImpl {
    * Note that localport is already set prior to this being called.
    */
   public synchronized void acceptConnection() throws IOException {
-    //System.out.println("Made it in to AcceptConnection");
 
     D.registerListeningSocket(this.localport, this);
     curState = stateMovement(State.CLOSED, State.LISTEN);
@@ -394,22 +376,20 @@ class StudentSocketImpl extends BaseSocketImpl {
 
     try{
       killTCPTimer();
-    } catch (Exception e){
+    } 
+    catch (Exception e){
       System.out.println("State is " + curState);
     }
 
     if(curState == State.TIME_WAIT){
-
       try {
         curState = stateMovement(curState, State.CLOSED);      
-      } catch (Exception e) {
-          //System.out.println("Caught an exception in curstate");
-          notifyAll();
+      } 
+      catch (Exception e) {
+        notifyAll();
       }
-      //System.out.println("Updated");
 
       notifyAll();
-      //System.out.println("Notified");
 
       try {
            D.unregisterConnection(localSourcAddr, localport, localSourcePort, this);
@@ -417,15 +397,11 @@ class StudentSocketImpl extends BaseSocketImpl {
 
           e.printStackTrace();
       }
-
-      //System.out.println("Done");
-      
     }
 
     else{
       wrapAndSend(true, prevBufPack1, 0, 0, 0, 0, false, false, false, localSourcAddr);
     }
-
   }
 
   private State stateMovement(State in, State out) {
@@ -433,12 +409,13 @@ class StudentSocketImpl extends BaseSocketImpl {
     return out;
   }
 
-  public State returnState(){
-    return curState;
-  }
-
-  public State returnClosed(){
-    return State.CLOSED;
+  public State returnState(boolean currentState){
+    if(currentState){
+      return curState;
+    }
+    else{
+      return State.CLOSED;
+    }
   }
 
   private void wrapAndSend(boolean prePack, TCPPacket passed, int sourcePortP, int destPortP, int seqNumP, int ackNumP, boolean first, boolean second, boolean third, InetAddress sendTo){
@@ -451,7 +428,7 @@ class StudentSocketImpl extends BaseSocketImpl {
     }
 
     if(prePack){
-      System.out.println("!!! Re-transmitting packet");
+      System.out.println("$$$ RE-SENDING DROPPED PACKET");
     }
 
     counter = counter + 1;
@@ -486,24 +463,23 @@ class StudentSocketImpl extends BaseSocketImpl {
 
 class CloseThread implements Runnable {
 
-    private StudentSocketImpl threadToKill;
+  private StudentSocketImpl threadToKill;
 
-    public CloseThread(StudentSocketImpl passed){
-      this.threadToKill = passed;
-    }
-    
-    @Override
-    public void run(){
-      while (threadToKill.returnState() != threadToKill.returnClosed()){
-        synchronized(threadToKill){
-        try {
-          threadToKill.wait();
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
-        }
+  public CloseThread(StudentSocketImpl passed){
+    this.threadToKill = passed;
+  }
+  
+  @Override public void run(){
+    while (threadToKill.returnState(true) != threadToKill.returnState(false)){
+      //synchronized(threadToKill)
+      try {
+        threadToKill.wait();
+      } 
+      catch (InterruptedException e) {
+        e.printStackTrace();
       }
     }
+  }
 }
 
 
