@@ -408,7 +408,7 @@ class StudentSocketImpl extends BaseSocketImpl {
     }
   }
 
-  private State stateMovement(State in, State out) {
+  public State stateMovement(State in, State out) {
     System.out.println("!!! " + in + "->" + out);
     return out;
   }
@@ -422,7 +422,7 @@ class StudentSocketImpl extends BaseSocketImpl {
     }
   }
 
-  private void wrapAndSend(boolean prePack, TCPPacket passed, int sourcePortP, int destPortP, int seqNumP, int ackNumP, boolean first, boolean second, boolean third, InetAddress sendTo){
+  public void wrapAndSend(boolean prePack, TCPPacket passed, int sourcePortP, int destPortP, int seqNumP, int ackNumP, boolean first, boolean second, boolean third, InetAddress sendTo){
 
     // For some reason after the connection is naturally shut down, it calls another instance of wrapAndSend
     // This is a "temporary" fix (read: not temporary at all)
@@ -472,8 +472,7 @@ class StudentSocketImpl extends BaseSocketImpl {
  */
 class CloseThread implements Runnable{
 
-  private StudentSocketImpl threadToKill;
-
+  public StudentSocketImpl threadToKill;
   public CloseThread(StudentSocketImpl passed) throws InterruptedException{
     this.threadToKill = passed;
   }
