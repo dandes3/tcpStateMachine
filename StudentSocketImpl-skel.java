@@ -1,3 +1,15 @@
+/* TCP State machine
+ * by Don Andes and Quint Guvernator
+ *
+ * As per our original hopes, we inititally attempted to integrate and write
+ * this project in Scala. While Scala does have the ability to integrate into 
+ * existing Java code, it proved beyond the scope of our ability for this 
+ * project. We have instead opted to fall back on the original specifications
+ * and deliver our final product in Java. 
+ *
+ * We will try again with project three. 
+ */
+
 import java.net.*;
 import java.io.*;
 import java.util.Timer;
@@ -29,19 +41,19 @@ class StudentSocketImpl extends BaseSocketImpl {
   private int counter = 1;
 
 
-  // In order
+  // Ridiculous Enumeration of States for switch statement while preserving printability (at least it looks pretty)
   enum State { 
-    CLOSED{@Override public String toString(){return "CLOSED";}}, 
-    LISTEN{@Override public String toString(){return "LISTEN";}}, 
-    SYN_SENT{@Override public String toString(){return "SYN_SENT";}}, 
-    SYN_RCVD{@Override public String toString(){return "SYN_RCVD";}}, 
-    ESTABLISHED{@Override public String toString(){return "ESTABLISHED";}}, 
-    FIN_WAIT_1{@Override public String toString(){return "FIN_WAIT_1";}}, 
-    CLOSE_WAIT{@Override public String toString(){return "CLOSE_WAIT";}}, 
-    FIN_WAIT_2{@Override public String toString(){return "FIN_WAIT_2";}}, 
-    LAST_ACK{@Override public String toString(){return "LAST_ACK";}}, 
-    TIME_WAIT{@Override public String toString(){return "TIME_WAIT";}}, 
-    CLOSING{@Override public String toString(){return "CLOSING";}}
+    CLOSED      {@Override public String toString(){return "CLOSED";}}, 
+    LISTEN      {@Override public String toString(){return "LISTEN";}}, 
+    CLOSING     {@Override public String toString(){return "CLOSING";}},
+    SYN_SENT    {@Override public String toString(){return "SYN_SENT";}}, 
+    SYN_RCVD    {@Override public String toString(){return "SYN_RCVD";}}, 
+    LAST_ACK    {@Override public String toString(){return "LAST_ACK";}}, 
+    TIME_WAIT   {@Override public String toString(){return "TIME_WAIT";}},
+    CLOSE_WAIT  {@Override public String toString(){return "CLOSE_WAIT";}},  
+    FIN_WAIT_1  {@Override public String toString(){return "FIN_WAIT_1";}}, 
+    FIN_WAIT_2  {@Override public String toString(){return "FIN_WAIT_2";}}, 
+    ESTABLISHED {@Override public String toString(){return "ESTABLISHED";}}
   }
 
   StudentSocketImpl(Demultiplexer D) {  // default constructor
@@ -62,8 +74,8 @@ class StudentSocketImpl extends BaseSocketImpl {
 
     counter = counter -1; // Weird double send fix
 
-    localAckNum = 3;
-    localSeqNumberStep = 6; // Uniformity
+    localAckNum = 3; // 100% arbitrary
+    localSeqNumberStep = 6; // Uniformity in arbitrarity 
     localSourcAddr = address;
     localport = D.getNextAvailablePort();
 
@@ -79,7 +91,7 @@ class StudentSocketImpl extends BaseSocketImpl {
       try{
        wait();
       } 
-      catch(InterruptedException e){
+      catch(Exception e){
          e.printStackTrace();
       }
     }
@@ -91,9 +103,7 @@ class StudentSocketImpl extends BaseSocketImpl {
    */
   public synchronized void receivePacket(TCPPacket p){
 
-  //Nintendo 
-    switch (curState){
-
+  /* Nintendo */ switch (curState){
       case LISTEN:
 
          if (!p.ackFlag && p.synFlag){
@@ -131,9 +141,7 @@ class StudentSocketImpl extends BaseSocketImpl {
            localSourcePort = p.sourcePort;
 
            wrapAndSend(false, prevBufPack1, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
-
            localSourcePort = p.sourcePort;
-
            curState = stateMovement(curState, State.ESTABLISHED);
          }
 
@@ -163,7 +171,6 @@ class StudentSocketImpl extends BaseSocketImpl {
            localSourcePort = p.sourcePort;
 
            wrapAndSend(false, prevBufPack1, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
-
            curState = stateMovement(curState, State.CLOSE_WAIT);
          }
 
@@ -207,7 +214,6 @@ class StudentSocketImpl extends BaseSocketImpl {
           localSourcePort = p.sourcePort;
 
           wrapAndSend(false, prevBufPack1, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
-
           curState = stateMovement(curState, State.TIME_WAIT);
 
           createTimerTask(15 * 1000, null);
@@ -217,16 +223,15 @@ class StudentSocketImpl extends BaseSocketImpl {
 
       case LAST_ACK:
 
-         if (p.finFlag){
-          wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr);
-         } 
-
-         if(p.ackFlag){
-
+         if (p.ackFlag){
           killTCPTimer();
           curState = stateMovement(curState, State.TIME_WAIT);
           createTimerTask(15 * 1000, null);
          }
+
+         if (p.finFlag){
+          wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr);
+         } 
 
          break;
 
@@ -241,28 +246,29 @@ class StudentSocketImpl extends BaseSocketImpl {
       case TIME_WAIT:
 
           try {
-              if (p.finFlag){
-                wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr);
-              }
+            if (p.finFlag){
+              wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr);
+            }
           } catch (Exception e) {
               System.out.println("You done messed up Aaron");
               e.printStackTrace();
-          }
+            }
 
          break;
 
       case CLOSING:
 
-         if (p.finFlag){
-          wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr);
-         }
+          if(p.ackFlag){
+            killTCPTimer();
+            curState = stateMovement(curState, State.TIME_WAIT);
+            createTimerTask(15 * 1000, null);
+          }
 
-         if(p.ackFlag){
+          else if (p.finFlag){
+            wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr);
+          }
 
-          killTCPTimer();
-          curState = stateMovement(curState, State.TIME_WAIT);
-          createTimerTask(15 * 1000, null);
-         }
+         
 
          break;
 
@@ -270,6 +276,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          break;
     }
 
+    // Call around to all waiting and update 
     this.notifyAll();
 
   }
@@ -297,7 +304,6 @@ class StudentSocketImpl extends BaseSocketImpl {
     }
   }
 
-  
   /**
    * Returns an input stream for this socket.  Note that this method cannot
    * create a NEW InputStream, but must return a reference to an 
@@ -329,7 +335,6 @@ class StudentSocketImpl extends BaseSocketImpl {
     return null;
   }
 
-
   /**
    * Closes this socket. 
    *
@@ -355,7 +360,6 @@ class StudentSocketImpl extends BaseSocketImpl {
     catch (Exception e){
       e.printStackTrace();
     }
-    
     return;
   }
 
@@ -408,11 +412,13 @@ class StudentSocketImpl extends BaseSocketImpl {
     }
   }
 
+  // Visualization at terminal of state transitions
   public State stateMovement(State in, State out) {
     System.out.println("!!! " + in + "->" + out);
     return out;
   }
 
+  // Get and workaround for getting close State
   public State returnState(boolean currentState){
     if(currentState){
       return curState;
@@ -422,6 +428,11 @@ class StudentSocketImpl extends BaseSocketImpl {
     }
   }
 
+ /**
+  * Packing, building, and sending hybrid function
+  *  In first case, builds a packed out of the supplied values and sends it to the given address
+  *  In second case, sends a pre-saved buffer packet to the specified address. When called in this fashion all other values are blanked to 0 and false respectively
+  */
   public void wrapAndSend(boolean prePack, TCPPacket passed, int sourcePortP, int destPortP, int seqNumP, int ackNumP, boolean first, boolean second, boolean third, InetAddress sendTo){
 
     // For some reason after the connection is naturally shut down, it calls another instance of wrapAndSend
@@ -431,12 +442,12 @@ class StudentSocketImpl extends BaseSocketImpl {
       return;
     }
 
+    // Looks like little fishies ^_^
     if(prePack){
       System.out.println("<>< RE-SENDING DROPPED PACKET <><");
     }
 
-    counter = counter + 1;
-
+    counter = counter + 1; // Un-breaks a false wrapAndSend call after natural termination
     TCPPacket push;
 
     if(prePack){
@@ -453,10 +464,12 @@ class StudentSocketImpl extends BaseSocketImpl {
       createTimerTask(1000, null);
     }
     
-    else
+    else{
       prevBufPack2 = push;
+    }
   }
 
+  // Because these two lines were getting repetitive
   public void killTCPTimer(){
     tcpTimer.cancel();
     tcpTimer = null;
@@ -477,11 +490,13 @@ class CloseThread implements Runnable{
     this.threadToKill = passed;
   }
   
+  // Keep calling home and checking status against CLOSED and wait() until done 
   public void run(){ 
     while (threadToKill.returnState(true) != threadToKill.returnState(false)){
       try {
         threadToKill.wait();
       } 
+      // General catch all
       catch (Exception e) {
         e.printStackTrace();
       }
