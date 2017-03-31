@@ -1,7 +1,7 @@
 import java.net.Socket;
 import java.net.ServerSocket;
 
-public class server2 {
+public class server3 {
   public static void main(String[] argv){
     
     if(argv.length!= 1){

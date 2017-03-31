@@ -1,6 +1,6 @@
 import java.net.Socket;
 
-public class client2 {
+public class client3 {
   public static void main(String[] argv){
     
     if(argv.length!= 2){
