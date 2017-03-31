@@ -461,7 +461,7 @@ class StudentSocketImpl extends BaseSocketImpl {
 
     TCPWrapper.send(push, sendTo);
 
-    if (!push.synFlag && push.ackFlag){
+    if (!push.ackFlag || push.synFlag){
       prevBufPack1 = push;
       createTimerTask(1000, null);
     }
