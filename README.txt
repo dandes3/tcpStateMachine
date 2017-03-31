@@ -39,7 +39,7 @@ Usage--
        along with our additional test files we have created. 
 
       As per the specifications, the two sides of the program should be invoked with "$ java 
-      -DUDPPORT=8816 -DLOSSRATE=0.50 server2 8817" and "$ java -DUDPPORT=8816 -DLOSSRATE=0.50 
-      client2 servermachinename 8817" respectively after compilation. We have tested our 
-      program and expect it to work with a DLOSSRATE up to 0.60. 
+       -DUDPPORT=8816 -DLOSSRATE=0.50 server2 8817" and "$ java -DUDPPORT=8816 -DLOSSRATE=0.50 
+       client2 servermachinename 8817" respectively after compilation. We have tested our 
+       program and expect it to work with a DLOSSRATE up to 0.60. 
 
