@@ -105,7 +105,7 @@ class StudentSocketImpl extends BaseSocketImpl {
    */
   public synchronized void receivePacket(TCPPacket p){
 
-  /* Nintendo */ switch (curState){
+  /* Nintendo */ switch (curState){ // Sometimes I think I'm funny 
       case LISTEN:
 
          if (!p.ackFlag && p.synFlag){
@@ -252,7 +252,7 @@ class StudentSocketImpl extends BaseSocketImpl {
               wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr);
             }
           } catch (Exception e) {
-              System.out.println("You done messed up Aaron");
+              // This is a really bad catch. This should literally never happen
               e.printStackTrace();
             }
 
@@ -461,7 +461,7 @@ class StudentSocketImpl extends BaseSocketImpl {
 
     TCPWrapper.send(push, sendTo);
 
-    if (!push.ackFlag || push.synFlag){
+    if (!push.synFlag && push.ackFlag){
       prevBufPack1 = push;
       createTimerTask(1000, null);
     }
