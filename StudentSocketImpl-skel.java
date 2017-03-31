@@ -14,15 +14,16 @@ class StudentSocketImpl extends BaseSocketImpl {
 
   private static final int winSize = 5;
   private static final byte[] payload = null; // Un-statify if using payloads
-  private TCPPacket prevBufPack1;
-  private TCPPacket prevBufPack2;
-  private TCPPacket prevBufPack3;
+
   private State curState;
   private int localAckNum;
   private TCPPacket talkback;
   private int localSeqNumber;
   private int localSourcePort;
   private int localSeqNumberStep;
+  private TCPPacket prevBufPack1;
+  private TCPPacket prevBufPack2;
+  private TCPPacket prevBufPack3;
   private InetAddress localSourcAddr;
 
   private int counter = 1;
@@ -63,7 +64,7 @@ class StudentSocketImpl extends BaseSocketImpl {
     counter = counter -1; // Weird double send fix
 
     localAckNum = 3;
-    localSeqNumberStep = 8; // Uniformity
+    localSeqNumberStep = 6; // Uniformity
     localSourcAddr = address;
     localport = D.getNextAvailablePort();
 
