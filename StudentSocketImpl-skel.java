@@ -12,7 +12,7 @@ class StudentSocketImpl extends BaseSocketImpl {
   private Demultiplexer D; // Given
   private Timer tcpTimer;  // Given
 
-  private static final int winSize = 5;
+  private static final int winSize = 10;
   private static final byte[] payload = null; // Un-statify if using payloads
 
   private State curState;
