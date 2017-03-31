@@ -218,7 +218,7 @@ class StudentSocketImpl extends BaseSocketImpl {
           wrapAndSend(false, prevBufPack1, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
           curState = stateMovement(curState, State.TIME_WAIT);
 
-          createTimerTask(15 * 1000, null);
+          createTimerTask(30 * 1000, null);
          }
 
          break;
@@ -228,7 +228,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          if (p.ackFlag){
           killTCPTimer();
           curState = stateMovement(curState, State.TIME_WAIT);
-          createTimerTask(15 * 1000, null);
+          createTimerTask(30 * 1000, null);
          }
 
          if (p.finFlag){
@@ -263,7 +263,7 @@ class StudentSocketImpl extends BaseSocketImpl {
           if(p.ackFlag){
             killTCPTimer();
             curState = stateMovement(curState, State.TIME_WAIT);
-            createTimerTask(15 * 1000, null);
+            createTimerTask(30 * 1000, null);
           }
 
           else if (p.finFlag){
