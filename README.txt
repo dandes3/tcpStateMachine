@@ -21,7 +21,7 @@ Created and submitted as coursework for CSCI 434, The College of William & Mary,
 
 Notes--
 
-      As per our original hopes, we inititally attempted to integrate and write this project 
+      As per our original hopes, we initially attempted to integrate and write this project 
        in Scala. While Scala does have the ability to integrate into existing Java code, it 
        proved beyond the scope of our ability for this project. We have instead opted to 
        fall back on the original specifications and deliver our final product in Java. 
@@ -40,6 +40,6 @@ Usage--
 
       As per the specifications, the two sides of the program should be invoked with "$ java 
        -DUDPPORT=8816 -DLOSSRATE=0.50 server2 8817" and "$ java -DUDPPORT=8816 -DLOSSRATE=0.50 
-       client2 servermachinename 8817" respectively after compilation. We have tested our 
+       client2 servermachinename 8817" respectively, after compilation. We have tested our 
        program and expect it to work with a DLOSSRATE up to 0.60. 
 
