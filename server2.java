@@ -5,7 +5,7 @@ public class server2 {
   public static void main(String[] argv){
     
     if(argv.length!= 1){
-      System.err.println("usage: server1 <hostport>");
+      System.err.println("usage: server2 <hostport>");
       System.exit(1);
     }
 

@@ -21,11 +21,38 @@ class StudentSocketImpl extends BaseSocketImpl {
   //   protected int port;
   //   protected int localport;
 
-  private Demultiplexer D; // Given
-  private Timer tcpTimer;  // Given
+  private Demultiplexer D;
+  private Timer tcpTimer;
 
-  private static final int winSize = 10; // Doesn't matter
-  private static final byte[] payload = null; // Un-statify if using payloads
+  private int winSize = 10; // Doesn't matter
+  private static final byte[] noPayload = null; // Un-statify if using payloads
+
+  private PipedOutputStream appOS;
+  private PipedInputStream appIS;
+  private PipedInputStream pipeAppToSocket;
+  private PipedOutputStream pipeSocketToApp;
+  private SocketReader reader;
+  private SocketWriter writer;
+  private boolean terminating = false;
+  private boolean pushed = false;
+
+  private InfiniteBuffer sendBuffer;
+  private InfiniteBuffer recvBuffer;
+
+  private int sendBufLeft;
+  private int sendBufSize; 
+
+  private int recvBufLeft;
+  private int recvBufSize; 
+
+  private int recvWindow;
+  private int unAckPackTrack; 
+
+
+  static final int data_bytes_per_packet = 1000;
+
+  private TCPPacket last_packet_sent = null;
+
 
   private State curState; // Internal state of the program
   private int localAckNum; // Local copy of ackNum
@@ -39,7 +66,6 @@ class StudentSocketImpl extends BaseSocketImpl {
   private InetAddress localSourcAddr; // Our interface
 
   private int counter = 1; // Fix for a re-transmission
-
 
   // Ridiculous Enumeration of States for switch statement while preserving printability (at least it looks pretty)
   enum State { 
@@ -58,8 +84,217 @@ class StudentSocketImpl extends BaseSocketImpl {
 
   StudentSocketImpl(Demultiplexer D) {  // default constructor
     this.D = D;
-    curState = State.CLOSED;
+
+    try {
+      pipeAppToSocket = new PipedInputStream();
+      pipeSocketToApp = new PipedOutputStream();
+      
+      appIS = new PipedInputStream(pipeSocketToApp);
+      appOS = new PipedOutputStream(pipeAppToSocket);
+    }
+    catch(IOException e){
+      System.err.println("unable to create piped sockets");
+      System.exit(1);
+    }
+
+
+    initBuffers();
+
+    reader = new SocketReader(pipeAppToSocket, this);
+    reader.start();
+
+    writer = new SocketWriter(pipeSocketToApp, this);
+    writer.start();
   }
+
+  /**
+   * initialize buffers and set up sequence numbers
+   */
+  private void initBuffers(){
+    // Buffers are made and trackers are set to keep endpoints on the current buffer size 
+    //  amount of space that is left to write to.
+    sendBuffer = new InfiniteBuffer();
+    sendBufSize = sendBuffer.getBufferSize();
+    sendBufLeft = sendBufSize;
+
+    recvBuffer = new InfiniteBuffer();
+    recvBufSize = recvBuffer.getBufferSize();
+    recvBufLeft = recvBufSize;
+  }
+
+  /**
+   * Basically a nice little wrapper function that protects the inherently unsafe *infinite* circular buffer. 
+   * Wraps all attempts at appending with a safety fallout if the buffer tries to circle around and overwrite. 
+   */
+  private synchronized void attemptAppend(boolean sendBuf, byte[] buffer, int length){
+
+    if(sendBuf){
+      //System.out.println("In attemptAppend send");
+      if ((sendBufLeft - sendBufSize) < 0){
+        System.out.println("Buffer circled around, panic and throw stuff.");
+        return;
+      }
+
+      sendBufLeft -= length;
+      sendBuffer.append(buffer, 0, length);
+      //System.out.println(sendBufLeft);
+      return;
+    }
+    else{
+      //System.out.println("In attemptAppend recv");
+      if ((recvBufLeft - recvBufSize) < 0){
+        System.out.println("Buffer circled around, panic and throw stuff.");
+        return;
+      }
+
+      recvBufLeft -= length;
+      recvBuffer.append(buffer, 0, length);
+      //System.out.println(recvBufLeft);
+      return;
+    }
+  }
+
+  /**
+ * Basically a nice little wrapper function that protects the inherently unsafe *infinite* circular buffer. 
+ * Wraps all attempts at reading with a safety fallout if the buffer tries to read garbage data. 
+ */
+  private synchronized byte[] attemptRead(boolean sendBuf, byte[] buffer, int length){
+    
+    
+    if(sendBuf){
+      //System.out.println("In attemptRead send");
+      if ((length == 0) || ((sendBufLeft + length) > sendBufSize)) { // Control for bogus length of read 0
+        System.out.println("Reading too far or given length of zero. I can't believe you've done this.");
+        return(null);
+      }
+
+      sendBufLeft += length; 
+      sendBuffer.copyOut(buffer, sendBuffer.getBase(), length);
+      sendBuffer.advance(length);
+      return(buffer);
+    }
+    else{
+      //System.out.println("In attemptRead recv");
+      if ((length == 0) || ((recvBufLeft + length) > recvBufSize)) { // Control for bogus length of read 0
+        System.out.println("Reading too far or given length of zero. I can't believe you've done this.");
+        return(null);
+      }
+
+      recvBufLeft += length; 
+      recvBuffer.copyOut(buffer, recvBuffer.getBase(), length);
+      recvBuffer.advance(length);
+      return(buffer);
+    }
+
+  }
+
+  synchronized void sendData() {
+    // TODO: Figure out how to set up a tracking space
+    //System.out.println("In sendData");
+
+    int sentSpace = -1;
+    if (recvWindow > 0){ sentSpace = 0;}
+
+    while(unAckPackTrack <= 7 && ((sendBufSize - sendBufLeft) > 0) && sentSpace < recvWindow){
+      int packSize = 1000;
+
+      //System.out.println(packSize);
+      //System.out.println(sendBufSize - sendBufLeft);
+      //System.out.println(recvWindow - sentSpace);
+
+      if (packSize > (sendBufSize - sendBufLeft)){ packSize = (sendBufSize - sendBufLeft);}
+      //if (packSize > (recvWindow - sentSpace)){ packSize = (recvWindow - sentSpace);}
+
+      
+      //System.out.println(packSize);
+
+      byte[] passer = new byte[packSize];
+      byte[] payload = attemptRead(true, passer, packSize);
+    
+      // Throws gotten string at screen after decoding
+      String puller = new String(payload);
+      //System.out.println("This is the string being inserted into the packet");
+      //System.out.println(puller);
+
+      wrapAndSend(false, prevBufPack1, localport, localSourcePort, localSeqNumber, localAckNum, false, false, false, localSourcAddr, noPayload);
+      //TCPPacket payloadPacket = new TCPPacket(localport, port, seqNum, ackNum, false, false, false, recvBufLeft, payload);
+
+      sentSpace += packSize;
+      seqNum += packSize;
+      unAckPackTrack ++;
+      String plaintext = new String(payload);
+
+      /** Please god work */
+      //sendPacket(payloadPacket, false);
+      //System.out.println("Attempted a packet send with data");
+
+    }
+    notifyAll();
+
+  }
+  /**
+   * Called by the application-layer code to copy data out of the 
+   * recvBuffer into the application's space.
+   * Must block until data is available, or until terminating is true
+   * @param buffer array of bytes to return to application
+   * @param length desired maximum number of bytes to copy
+   * @return number of bytes copied (by definition > 0)
+   */
+  synchronized int getData(byte[] buffer, int length){
+    //System.out.println("In getData");
+    while ((recvBufSize - recvBufLeft) == 0){
+      try {wait();} 
+      catch (InterruptedException e){e.printStackTrace();}
+    }
+
+    int minReaderVal = recvBufSize - recvBufLeft; 
+    if (length < minReaderVal) {
+      minReaderVal = length;
+    }
+
+    //System.out.println(minReaderVal);
+
+    buffer = attemptRead(false, buffer, minReaderVal);
+    
+    // Throws gotten string at screen after decoding
+    String puller = new String(buffer);
+    //System.out.println(puller);
+
+    notifyAll();
+    return minReaderVal;
+  }
+
+  /**
+   * accept data written by application into sendBuffer to send.
+   * Must block until ALL data is written.
+   * @param buffer array of bytes to copy into app
+   * @param length number of bytes to copy 
+   */
+  synchronized void dataFromApp(byte[] buffer, int length){
+    //System.out.println("In dataFromApp");
+    while (sendBufLeft == 0){
+      //System.out.println("In dataFromApp wait loop");
+      try {wait();} 
+      catch (InterruptedException e){e.printStackTrace();}
+    }
+    //System.out.println(sendBufLeft);
+
+    attemptAppend(true, buffer, length);
+
+    //buffer = attemptRead(true, buffer, length);
+    
+    // Throws gotten string at screen after decoding
+    //String puller = new String(buffer);
+    //System.out.println(puller);
+
+
+    //System.out.println(sendBufLeft);
+
+    if (terminating){pushed = true;}
+
+    sendData();
+  }
+
 
   /**
    * Connects this socket to the specified port number on the specified host.
@@ -83,7 +318,7 @@ class StudentSocketImpl extends BaseSocketImpl {
 
     // Make connection, wrap the packet and shoot it out
     D.registerConnection(address, this.localport, port, this);
-    wrapAndSend(false, prevBufPack1, this.localport, port, localAckNum, localSeqNumberStep, false, true, false, localSourcAddr);
+    wrapAndSend(false, prevBufPack1, this.localport, port, localAckNum, localSeqNumberStep, false, true, false, localSourcAddr, noPayload);
 
     // State printout
     curState = stateMovement(State.CLOSED, State.SYN_SENT);
@@ -117,7 +352,7 @@ class StudentSocketImpl extends BaseSocketImpl {
            localSourcAddr = p.sourceAddr;
            localAckNum = p.ackNum;
 
-           wrapAndSend(false, prevBufPack1, localport, p.sourcePort, localAckNum, localSeqNumberStep, true, true, false, localSourcAddr); 
+           wrapAndSend(false, prevBufPack1, localport, p.sourcePort, localAckNum, localSeqNumberStep, true, true, false, localSourcAddr, noPayload); 
            curState = stateMovement(curState, State.SYN_RCVD);
 
            // Compiler required try/catch block
@@ -142,7 +377,7 @@ class StudentSocketImpl extends BaseSocketImpl {
            localSourcAddr = p.sourceAddr;
            localSourcePort = p.sourcePort;
 
-           wrapAndSend(false, prevBufPack1, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
+           wrapAndSend(false, prevBufPack1, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr, noPayload);
            localSourcePort = p.sourcePort;
            curState = stateMovement(curState, State.ESTABLISHED);
          }
@@ -157,7 +392,7 @@ class StudentSocketImpl extends BaseSocketImpl {
          }
 
          else if (p.synFlag){
-          wrapAndSend(true, prevBufPack1, 0, 0, 0, 0, false, false, false, localSourcAddr);
+          wrapAndSend(true, prevBufPack1, 0, 0, 0, 0, false, false, false, localSourcAddr, noPayload);
          }
          break;
 
@@ -170,12 +405,12 @@ class StudentSocketImpl extends BaseSocketImpl {
            localSourcAddr = p.sourceAddr;
            localSourcePort = p.sourcePort;
 
-           wrapAndSend(false, prevBufPack1, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
+           wrapAndSend(false, prevBufPack1, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr, noPayload);
            curState = stateMovement(curState, State.CLOSE_WAIT);
          }
 
          else if (p.ackFlag && p.synFlag){
-          wrapAndSend(false, prevBufPack2, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
+          wrapAndSend(false, prevBufPack2, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr, noPayload);
          }
          break;
 
@@ -183,7 +418,7 @@ class StudentSocketImpl extends BaseSocketImpl {
 
          if (p.ackFlag){
           if(p.synFlag){
-            wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr);
+            wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr, noPayload);
           }
           else{
             curState = stateMovement(curState, State.FIN_WAIT_2);
@@ -198,7 +433,7 @@ class StudentSocketImpl extends BaseSocketImpl {
           localAckNum = p.ackNum;
           localSourcePort = p.sourcePort;
 
-          wrapAndSend(false, prevBufPack1, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
+          wrapAndSend(false, prevBufPack1, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr, noPayload);
 
           curState = stateMovement(curState, State.CLOSING);
          }
@@ -211,7 +446,7 @@ class StudentSocketImpl extends BaseSocketImpl {
           localAckNum = p.ackNum;
           localSourcePort = p.sourcePort;
 
-          wrapAndSend(false, prevBufPack1, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr);
+          wrapAndSend(false, prevBufPack1, localport, localSourcePort, -2, localSeqNumberStep, true, false, false, localSourcAddr, noPayload);
           curState = stateMovement(curState, State.TIME_WAIT);
 
           createTimerTask(30 * 1000, null);
@@ -227,14 +462,14 @@ class StudentSocketImpl extends BaseSocketImpl {
          }
 
          if (p.finFlag){
-          wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr);
+          wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr, noPayload);
          } 
          break;
 
       case CLOSE_WAIT:
 
          if (p.finFlag){
-          wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr);         
+          wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr, noPayload);         
          }
          break;
 
@@ -242,7 +477,7 @@ class StudentSocketImpl extends BaseSocketImpl {
 
           try {
             if (p.finFlag){
-              wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr);
+              wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr, noPayload);
             }
           } catch (Exception e) {
               // This is a really bad catch. This should literally never happen
@@ -259,7 +494,7 @@ class StudentSocketImpl extends BaseSocketImpl {
           }
 
           else if (p.finFlag){
-            wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr);
+            wrapAndSend(true, prevBufPack2, 0, 0, 0, 0, false, false, false, localSourcAddr, noPayload);
           }
          break;
 
@@ -271,7 +506,7 @@ class StudentSocketImpl extends BaseSocketImpl {
     this.notifyAll();
 
   }
-
+  
   /** 
    * Waits for an incoming connection to arrive to connect this socket to
    * Ultimately this is called by the application calling 
@@ -306,9 +541,7 @@ class StudentSocketImpl extends BaseSocketImpl {
    *               input stream.
    */
   public InputStream getInputStream() throws IOException {
-    // project 4 return appIS;
-    return null;
-    
+    return appIS;
   }
 
   /**
@@ -322,8 +555,7 @@ class StudentSocketImpl extends BaseSocketImpl {
    *               output stream.
    */
   public OutputStream getOutputStream() throws IOException {
-    // project 4 return appOS;
-    return null;
+    return appOS;
   }
 
   /**
@@ -333,7 +565,7 @@ class StudentSocketImpl extends BaseSocketImpl {
    */
   public synchronized void close() throws IOException {
 
-    wrapAndSend(false, prevBufPack1, this.localport, this.localSourcePort, localAckNum, localSeqNumberStep, false, false, true, localSourcAddr);
+    wrapAndSend(false, prevBufPack1, this.localport, this.localSourcePort, localAckNum, localSeqNumberStep, false, false, true, localSourcAddr, noPayload);
 
     // Test for state response after final packet push
     if(curState == State.CLOSE_WAIT){
@@ -401,7 +633,7 @@ class StudentSocketImpl extends BaseSocketImpl {
     }
 
     else{
-      wrapAndSend(true, prevBufPack1, 0, 0, 0, 0, false, false, false, localSourcAddr);
+      wrapAndSend(true, prevBufPack1, 0, 0, 0, 0, false, false, false, localSourcAddr, noPayload);
     }
   }
 
@@ -426,7 +658,7 @@ class StudentSocketImpl extends BaseSocketImpl {
   *  In first case, builds a packed out of the supplied values and sends it to the given address
   *  In second case, sends a pre-saved buffer packet to the specified address. When called in this fashion all other values are blanked to 0 and false respectively
   */
-  public void wrapAndSend(boolean prePack, TCPPacket passed, int sourcePortP, int destPortP, int seqNumP, int ackNumP, boolean first, boolean second, boolean third, InetAddress sendTo){
+  public void wrapAndSend(boolean prePack, TCPPacket passed, int sourcePortP, int destPortP, int seqNumP, int ackNumP, boolean first, boolean second, boolean third, InetAddress sendTo, byte[] carrier){
 
     // For some reason after the connection is naturally shut down, it calls another instance of wrapAndSend
     // This is a "temporary" fix (read: not temporary at all)
@@ -447,7 +679,7 @@ class StudentSocketImpl extends BaseSocketImpl {
       push = passed;
     }
     else{
-      push = new TCPPacket(sourcePortP, destPortP, seqNumP, ackNumP, first, second, third, winSize, payload);
+      push = new TCPPacket(sourcePortP, destPortP, seqNumP, ackNumP, first, second, third, recvBufLeft, carrier);
     }
 
     TCPWrapper.send(push, sendTo);
