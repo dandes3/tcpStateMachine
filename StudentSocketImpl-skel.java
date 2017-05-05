@@ -12,7 +12,7 @@
 
 import java.net.*;
 import java.io.*;
-import java.util.Timer;
+import java.util.*;
 
 class StudentSocketImpl extends BaseSocketImpl {
 
