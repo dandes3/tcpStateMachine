@@ -220,7 +220,7 @@ class StudentSocketImpl extends BaseSocketImpl {
       //TCPPacket payloadPacket = new TCPPacket(localport, port, seqNum, ackNum, false, false, false, recvBufLeft, payload);
 
       sentSpace += packSize;
-      seqNum += packSize;
+      localSeqNumber += packSize;
       unAckPackTrack ++;
       String plaintext = new String(payload);
 
